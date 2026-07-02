@@ -1,0 +1,2727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>오늘 뭐 샀어?</title>
+<style>
+  :root{
+    --bg: #FFF6E5;
+    --ink: #2B2118;
+    --good: #FF8A3D;
+    --good2: #FFC15E;
+    --bad: #5B6CFF;
+    --bad2: #8E9CFF;
+    --soso: #34B97A;
+    --card: #FFFFFF;
+    --shadow: rgba(43,33,24,0.15);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 10% 20%, #FFE3B0 0%, transparent 35%),
+      radial-gradient(circle at 90% 80%, #FFD9D9 0%, transparent 40%);
+    min-height: 100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    overflow-y:auto;
+    overflow-x:hidden;
+    color:var(--ink);
+  }
+  .stage{
+    width:100%;
+    max-width:480px;
+    min-height:640px;
+    position:relative;
+    padding:24px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+  }
+  .screen{
+    width:100%;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+    animation: pop-in .45s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  .screen.active{display:flex;}
+  @keyframes pop-in{
+    from{opacity:0; transform: translateY(18px) scale(.96);}
+    to{opacity:1; transform: translateY(0) scale(1);}
+  }
+  .logo{
+    font-size:15px;
+    letter-spacing:3px;
+    font-weight:700;
+    color:#C97A2B;
+    text-transform:uppercase;
+  }
+  h1{
+    font-size:26px;
+    margin:0;
+    text-align:center;
+    line-height:1.4;
+  }
+  .sub{
+    font-size:15px;
+    color:#7A6A56;
+    text-align:center;
+    margin-top:-8px;
+  }
+  input[type="text"]{
+    width:100%;
+    max-width:320px;
+    padding:16px 18px;
+    font-size:17px;
+    border-radius:18px;
+    border:2px solid #F0DDB8;
+    background:var(--card);
+    outline:none;
+    text-align:center;
+    font-family:inherit;
+    transition: border-color .2s, transform .2s;
+    box-shadow: 0 6px 0 var(--shadow);
+  }
+  input[type="text"]:focus{
+    border-color: var(--good);
+    transform: translateY(-2px);
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+  }
+  .btn{
+    padding:15px 32px;
+    font-size:17px;
+    font-weight:700;
+    border-radius:18px;
+    background: var(--good);
+    color:white;
+    box-shadow: 0 6px 0 #C75F1C;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .btn:active{
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #C75F1C;
+  }
+  .btn:disabled{
+    background:#E5D9C2;
+    box-shadow:0 6px 0 #CFC1A4;
+    cursor:not-allowed;
+  }
+  .item-emoji{
+    font-size:64px;
+    animation: float 2.6s ease-in-out infinite;
+  }
+  @keyframes float{
+    0%,100%{transform: translateY(0) rotate(-3deg);}
+    50%{transform: translateY(-10px) rotate(3deg);}
+  }
+  .choice-row{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    width:100%;
+    max-width:320px;
+  }
+  .choice-btn{
+    padding:18px 20px;
+    border-radius:20px;
+    font-size:17px;
+    font-weight:800;
+    color:white;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.18);
+    transition: transform .12s, box-shadow .12s, filter .12s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .choice-btn:hover{filter:brightness(1.05);}
+  .choice-btn:active{transform: translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,0.18);}
+  .choice-good{background: linear-gradient(135deg, var(--good), var(--good2));}
+  .choice-soso{background: linear-gradient(135deg, var(--soso), #6FE0A8);}
+  .choice-bad{background: linear-gradient(135deg, var(--bad), var(--bad2));}
+
+  /* ===== Result stage ===== */
+  .result-stage{
+    width:100%;
+    height:560px;
+    position:relative;
+    border-radius:28px;
+    overflow:hidden;
+    background: linear-gradient(180deg, #FFF1D6 0%, #FFE3B0 100%);
+    box-shadow: inset 0 0 0 2px #F0DDB8;
+  }
+  .ground{
+    position:absolute;
+    bottom:0; left:0; right:0;
+    height:70px;
+    background: linear-gradient(180deg, #E9D7AE, #D8C190);
+    border-top: 3px dashed #C2A86F;
+  }
+  .center-item{
+    position:absolute;
+    left:50%; top:46%;
+    transform: translate(-50%,-50%);
+    font-size:72px;
+    z-index:5;
+  }
+  .crowd{
+    position:absolute;
+    bottom:62px;
+    left:0; right:0;
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    flex-wrap:wrap;
+    padding:0 10px;
+  }
+  .person{
+    font-size:34px;
+    opacity:0;
+  }
+  .result-text{
+    position:absolute;
+    top:14px; left:0; right:0;
+    text-align:center;
+    font-size:20px;
+    font-weight:800;
+    z-index:10;
+    padding:0 16px;
+  }
+  .stamp{
+    position:absolute;
+    top:38%; left:50%;
+    transform: translate(-50%,-50%) rotate(-18deg) scale(0);
+    font-size:54px;
+    font-weight:900;
+    color:#1F9D5E;
+    border:6px solid #1F9D5E;
+    border-radius:14px;
+    padding:6px 22px;
+    background: rgba(255,255,255,0.6);
+    z-index:20;
+  }
+  .stamp.show{
+    animation: stamp-in .5s cubic-bezier(.3,1.7,.4,1) .6s forwards;
+  }
+  @keyframes stamp-in{
+    0%{ transform: translate(-50%,-50%) rotate(-18deg) scale(2.5); opacity:0;}
+    60%{ opacity:1;}
+    100%{ transform: translate(-50%,-50%) rotate(-18deg) scale(1); opacity:1;}
+  }
+  .money{
+    position:absolute;
+    font-size:26px;
+    z-index:15;
+    opacity:0;
+  }
+  .confetti{
+    position:absolute;
+    width:10px; height:10px;
+    top:-20px;
+    opacity:0;
+    z-index:30;
+  }
+  .speech{
+    position:absolute;
+    background:white;
+    border-radius:14px;
+    padding:6px 10px;
+    font-size:12px;
+    font-weight:700;
+    box-shadow:0 3px 0 rgba(0,0,0,.1);
+    opacity:0;
+    z-index:25;
+    white-space:nowrap;
+  }
+  .replay-wrap{
+    margin-top:18px;
+    display:flex;
+    gap:10px;
+  }
+  .btn-ghost{
+    padding:12px 22px;
+    border-radius:16px;
+    background: white;
+    color: var(--ink);
+    font-weight:700;
+    border:2px solid #F0DDB8;
+    box-shadow:0 4px 0 var(--shadow);
+  }
+  .result-msg{
+    margin-top:14px;
+    font-size:16px;
+    text-align:center;
+    font-weight:700;
+    min-height:24px;
+  }
+  .footer-name{
+    font-size:13px;
+    color:#9C8A6E;
+    margin-top:2px;
+  }
+  .amount-wrap{
+    width:100%;
+    max-width:320px;
+    position:relative;
+  }
+  .amount-wrap input{
+    width:100%;
+    max-width:100%;
+    padding-right:42px;
+  }
+  .amount-wrap .won{
+    position:absolute;
+    right:18px;
+    top:50%;
+    transform:translateY(-50%);
+    font-weight:800;
+    color:#C97A2B;
+    font-size:16px;
+    pointer-events:none;
+  }
+  .link-btn{
+    background:none;
+    border:none;
+    color:#9C8A6E;
+    font-size:13px;
+    text-decoration:underline;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .top-link-row{
+    position:absolute;
+    top:18px;
+    right:18px;
+  }
+  .top-link-row button{
+    font-size:13px;
+    padding:8px 14px;
+    border-radius:12px;
+    background:white;
+    border:2px solid #F0DDB8;
+    box-shadow:0 3px 0 var(--shadow);
+    font-weight:700;
+    color:var(--ink);
+  }
+
+  /* ===== Ledger ===== */
+  #screen-ledger{
+    width:100%;
+  }
+  .ledger-book{
+    width:100%;
+    max-width:380px;
+    background: var(--card);
+    border-radius:24px;
+    box-shadow: 0 10px 0 var(--shadow), 0 0 0 3px #F0DDB8;
+    padding:18px;
+    position:relative;
+  }
+  .ledger-book::before{
+    content:"";
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width:14px;
+    background: repeating-linear-gradient(180deg, #FFC15E 0 6px, transparent 6px 14px);
+    opacity:.5;
+    border-radius:24px 0 0 24px;
+    pointer-events:none;
+  }
+  .ledger-header{
+    text-align:center;
+    font-weight:800;
+    font-size:17px;
+    margin-bottom:10px;
+  }
+  .month-tabs{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:8px;
+    margin-bottom:8px;
+    scrollbar-width:none;
+  }
+  .month-tabs::-webkit-scrollbar{display:none;}
+  .month-tab{
+    flex:0 0 auto;
+    padding:8px 14px;
+    border-radius:14px;
+    background:#FFF6E5;
+    font-size:13px;
+    font-weight:700;
+    color:#9C8A6E;
+    border:2px solid transparent;
+    white-space:nowrap;
+  }
+  .month-tab.active{
+    background: var(--good);
+    color:white;
+    border-color:#C75F1C;
+  }
+  .month-summary{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    color:#7A6A56;
+    padding:6px 4px 10px;
+    border-bottom:2px dashed #F0DDB8;
+    margin-bottom:8px;
+  }
+  .month-summary b{ color:var(--ink); }
+  .ledger-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-height:340px;
+    overflow-y:auto;
+  }
+  .ledger-empty{
+    text-align:center;
+    color:#B5A687;
+    font-size:14px;
+    padding:30px 10px;
+  }
+  .ledger-entry{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    border-radius:16px;
+    background:#FFFBF2;
+    border:2px solid #F5E9CC;
+    opacity:0;
+    transform: translateX(-12px);
+  }
+  .ledger-entry.in{
+    animation: entry-in .4s ease forwards;
+  }
+  @keyframes entry-in{
+    to{ opacity:1; transform:translateX(0); }
+  }
+  .ledger-emoji{
+    font-size:26px;
+    flex:0 0 auto;
+  }
+  .ledger-info{
+    flex:1;
+    min-width:0;
+  }
+  .ledger-item-name{
+    font-weight:800;
+    font-size:14px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .ledger-meta{
+    font-size:11px;
+    color:#9C8A6E;
+  }
+  .ledger-right{
+    text-align:right;
+    flex:0 0 auto;
+  }
+  .ledger-amount{
+    font-weight:800;
+    font-size:13px;
+  }
+  .ledger-badge{
+    display:inline-block;
+    margin-top:3px;
+    padding:2px 8px;
+    border-radius:10px;
+    font-size:10px;
+    font-weight:800;
+    color:white;
+  }
+  .badge-good{ background: var(--good); }
+  .badge-soso{ background: var(--soso); }
+  .badge-bad{ background: var(--bad); }
+  .badge-income{ background: #1F9D5E; }
+  .ledger-entry-income{
+    background:#E9FBF1;
+    border:2px solid #BDEBD2;
+  }
+  .ledger-amount-income{ color:#1F9D5E; }
+  .ledger-back-row{
+    display:flex;
+    justify-content:center;
+    margin-top:14px;
+  }
+  .datetime-row{
+    display:flex;
+    gap:8px;
+    width:100%;
+    max-width:320px;
+  }
+  .datetime-row input{
+    padding:12px 10px;
+    font-size:13px;
+    border-radius:14px;
+    border:2px solid #F0DDB8;
+    background:var(--card);
+    outline:none;
+    text-align:center;
+    font-family:inherit;
+    flex:1;
+    box-shadow: 0 4px 0 var(--shadow);
+  }
+  .datetime-row input:focus{ border-color: var(--good); }
+  .nav-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .nav-arrow{
+    width:34px; height:34px;
+    border-radius:50%;
+    background:#FFF6E5;
+    border:2px solid #F0DDB8;
+    font-weight:800;
+    font-size:15px;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .nav-arrow:active{ transform: scale(.92); }
+  .nav-title{
+    font-weight:800;
+    font-size:16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .nav-title .hint{ font-size:11px; color:#B5A687; font-weight:600; }
+  .view-toggle{
+    text-align:center;
+    margin:-2px 0 10px;
+  }
+  .view-toggle button{
+    font-size:12px;
+    padding:6px 12px;
+    border-radius:12px;
+    background:#FFF6E5;
+    border:2px solid #F0DDB8;
+    font-weight:700;
+    color:#9C8A6E;
+  }
+  .year-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .year-month-card{
+    border-radius:14px;
+    background:#FFFBF2;
+    border:2px solid #F5E9CC;
+    padding:10px 6px;
+    text-align:center;
+    opacity:0;
+    transform: translateY(8px);
+  }
+  .year-month-card.in{ animation: entry-up .35s ease forwards; }
+  @keyframes entry-up{ to{ opacity:1; transform:translateY(0); } }
+  .year-month-card .mlabel{ font-weight:800; font-size:13px; }
+  .year-month-card .mcount{ font-size:11px; color:#9C8A6E; margin-top:2px; }
+  .year-month-card .mamount{ font-size:11px; color:#C97A2B; font-weight:700; margin-top:2px; }
+  .year-month-card.empty{ opacity:.4; }
+  .note-box{
+    margin:10px 0;
+    padding:10px 12px;
+    border-radius:14px;
+    background:#FFF9EC;
+    border:2px dashed #F0DDB8;
+  }
+  .note-box .note-label{
+    font-size:12px;
+    font-weight:800;
+    color:#C97A2B;
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .note-box textarea{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-family:inherit;
+    font-size:13px;
+    resize:none;
+    outline:none;
+    color:var(--ink);
+  }
+  .note-saved{
+    font-size:10px;
+    color:#34B97A;
+    font-weight:700;
+    opacity:0;
+    transition: opacity .3s;
+  }
+  .note-saved.show{ opacity:1; }
+  .ledger-toolbar{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin:-2px 0 10px;
+    flex-wrap:wrap;
+  }
+  .ledger-toolbar button{
+    font-size:12px;
+    padding:6px 12px;
+    border-radius:12px;
+    background:#FFF6E5;
+    border:2px solid #F0DDB8;
+    font-weight:700;
+    color:#9C8A6E;
+  }
+  .ledger-toolbar button.danger{
+    background:#FFEAEA;
+    border-color:#F5C2C2;
+    color:#D14848;
+  }
+  .ledger-toolbar button.active{
+    background: var(--bad);
+    border-color:#4453D6;
+    color:white;
+  }
+  .ledger-entry{
+    position:relative;
+  }
+  .entry-check{
+    flex:0 0 auto;
+    width:20px;
+    height:20px;
+    border-radius:6px;
+    border:2px solid #D8C190;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    color:white;
+    background:white;
+  }
+  .entry-check.checked{
+    background: var(--bad);
+    border-color:#4453D6;
+  }
+  .delete-bar{
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:12px 16px;
+    border-radius:18px;
+    background:#FFEAEA;
+    border:2px solid #F5C2C2;
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    width:calc(100% - 48px);
+    max-width:420px;
+    z-index:100;
+    box-shadow:0 4px 16px rgba(0,0,0,0.12);
+  }
+  .delete-bar.show{ display:flex; }
+  .delete-bar span{ font-size:12px; font-weight:700; color:#D14848; }
+  .delete-bar .dbtns{ display:flex; gap:6px; }
+  .delete-bar button{
+    font-size:12px;
+    padding:6px 12px;
+    border-radius:10px;
+    font-weight:800;
+    border:none;
+  }
+  .delete-bar .confirm-del{ background:#D14848; color:white; }
+  .delete-bar .cancel-del{ background:white; color:#9C8A6E; border:2px solid #F5C2C2; }
+
+  /* ===== Profile drawing ===== */
+  #draw-canvas{
+    width:220px;
+    height:220px;
+    border-radius:24px;
+    background:var(--card);
+    border:3px solid #F0DDB8;
+    box-shadow: 0 6px 0 var(--shadow);
+    touch-action:none;
+    cursor:crosshair;
+  }
+  .draw-color-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:center;
+    max-width:280px;
+  }
+  .draw-color-row .swatch{
+    width:26px; height:26px;
+    border-radius:50%;
+    border:3px solid white;
+    box-shadow:0 0 0 2px #E5D9C2;
+    cursor:pointer;
+  }
+  .draw-color-row .swatch.active{
+    box-shadow:0 0 0 3px var(--ink);
+  }
+  .draw-btn-row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .profile-icon{
+    width:28px; height:28px;
+    border-radius:50%;
+    object-fit:cover;
+    vertical-align:middle;
+    margin-right:6px;
+    border:2px solid #F0DDB8;
+    background:white;
+  }
+
+  /* ===== Home extra links ===== */
+  .home-extra-row{
+    display:flex;
+    gap:14px;
+    margin-top:-4px;
+  }
+  .big-action-btn{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:18px 10px;
+    border-radius:22px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.18);
+    transition: transform .12s, box-shadow .12s;
+  }
+  .big-action-btn:active{ transform: translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,0.18); }
+  .big-action-emoji{
+    font-size:36px;
+    animation: float 2.6s ease-in-out infinite;
+  }
+  .big-action-text{
+    font-size:14px;
+    font-weight:800;
+    color:white;
+    line-height:1.3;
+    text-align:center;
+  }
+  .piggy-action{ background: linear-gradient(135deg, #FF9EBE, #FF6FA3); }
+  .income-action{ background: linear-gradient(135deg, #6FE0A8, #34B97A); }
+
+  /* ===== Income chips ===== */
+  .chip-row{
+    display:flex;
+    gap:8px;
+  }
+  .chip{
+    padding:10px 16px;
+    border-radius:14px;
+    background:#FFF6E5;
+    border:2px solid #F0DDB8;
+    font-weight:700;
+    font-size:14px;
+    color:#9C8A6E;
+  }
+  .chip.active{
+    background: var(--soso);
+    border-color:#1F9D5E;
+    color:white;
+  }
+
+  /* ===== 동생 전용 통화 선택 ===== */
+  .currency-switch-row{
+    display:flex;
+    gap:8px;
+    margin-top:-4px;
+  }
+  .currency-btn{
+    padding:10px 16px;
+    border-radius:14px;
+    background:#FFF6E5;
+    border:2px solid #F0DDB8;
+    font-weight:800;
+    font-size:14px;
+    color:#9C8A6E;
+  }
+  .currency-btn.active{
+    background: linear-gradient(135deg, var(--bad), var(--bad2));
+    border-color:#3848D6;
+    color:white;
+  }
+
+  /* ===== Piggy bank ===== */
+  .piggy-stage{
+    position:relative;
+    width:100%;
+    max-width:260px;
+    height:140px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .piggy-emoji{
+    font-size:90px;
+    transition: transform .15s;
+  }
+  .piggy-emoji.bump{
+    animation: piggy-bump .35s ease;
+  }
+  @keyframes piggy-bump{
+    0%{ transform:scale(1); }
+    40%{ transform:scale(1.18) rotate(-4deg); }
+    100%{ transform:scale(1) rotate(0); }
+  }
+  .flying-coin{
+    position:absolute;
+    font-size:28px;
+    z-index:20;
+    pointer-events:none;
+  }
+  .piggy-total{
+    font-size:20px;
+    font-weight:800;
+    color:#C97A2B;
+  }
+  .coin-row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+    max-width:340px;
+  }
+  .coin-btn{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    padding:10px 8px;
+    border-radius:16px;
+    background:white;
+    border:2px solid #F0DDB8;
+    box-shadow:0 4px 0 var(--shadow);
+    transition: transform .1s;
+  }
+  .coin-btn span:last-child{
+    font-size:11px;
+    font-weight:700;
+    color:#7A6A56;
+  }
+  .coin-btn:active{ transform: translateY(3px); box-shadow:0 1px 0 var(--shadow); }
+  .coin-visual{
+    width:44px; height:30px;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:800;
+    color:white;
+    text-shadow:0 1px 1px rgba(0,0,0,0.25);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
+  }
+  .coin-visual.coin-500,
+  .coin-visual.coin-100{
+    width:34px; height:34px;
+    border-radius:50%;
+  }
+  .bill-50000{ background: linear-gradient(135deg, #F4C430, #D9A441); color:#5C4413; text-shadow:none; }
+  .bill-10000{ background: linear-gradient(135deg, #4FAE6A, #2F8C4D); }
+  .bill-1000{ background: linear-gradient(135deg, #5B8FE0, #3F6FC4); }
+  .coin-500{ background: radial-gradient(circle at 35% 30%, #F2F2F2, #B9BCC2); color:#555; text-shadow:none; }
+  .coin-100{ background: radial-gradient(circle at 35% 30%, #E8B27D, #B5793C); }
+
+  /* ===== Profile doodle in ledger ===== */
+  .profile-doodle-wrap{
+    margin:18px auto 4px;
+    width:140px;
+    text-align:center;
+    transform: rotate(-6deg);
+    position:relative;
+  }
+  .profile-doodle{
+    width:120px;
+    height:120px;
+    object-fit:cover;
+    border-radius:14px;
+    background:white;
+    border:4px solid white;
+    box-shadow: 0 0 0 2px #F0DDB8, 0 8px 0 var(--shadow);
+  }
+  .profile-doodle-wrap::before{
+    content:"";
+    position:absolute;
+    width:46px; height:18px;
+    background: rgba(255,193,94,0.55);
+    margin-left:37px;
+    margin-top:-10px;
+    transform: rotate(-8deg);
+  }
+  .profile-doodle-caption{
+    margin-top:6px;
+    font-size:12px;
+    font-weight:800;
+    color:#C97A2B;
+    transform: rotate(2deg);
+  }
+
+  /* ===== Ledger stats box ===== */
+  .stats-box{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:6px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    border-radius:14px;
+    background:#FFF9EC;
+    border:2px dashed #F0DDB8;
+    font-size:12px;
+  }
+  .stats-box .stat-item{
+    display:flex;
+    justify-content:space-between;
+    gap:6px;
+  }
+  .stats-box .stat-item b{
+    font-size:13px;
+  }
+  .stats-box .stat-wallet{
+    grid-column: 1 / -1;
+    border-top:2px dashed #F0DDB8;
+    margin-top:4px;
+    padding-top:6px;
+    font-size:14px;
+    font-weight:800;
+    display:flex;
+    justify-content:space-between;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- Screen 0: name -->
+  <div class="screen active" id="screen-name">
+    <div class="logo">소비 자랑 대회</div>
+    <h1>당신의 이름은<br>무엇인가요?</h1>
+    <input type="text" id="input-name" placeholder="이름을 입력하세요" maxlength="12">
+    <button class="btn" id="btn-name-next" disabled>다음으로</button>
+    <button class="link-btn" id="btn-go-ledger-from-name">📒 내 장부 보기</button>
+  </div>
+
+  <!-- Screen 0.5: profile draw -->
+  <div class="screen" id="screen-draw">
+    <div class="logo" id="draw-logo">나만의 캐릭터</div>
+    <h1>당신만의 프로필을<br>그려보세요 ✏️</h1>
+    <div class="sub">손가락이나 마우스로 자유롭게 그려보세요</div>
+    <canvas id="draw-canvas" width="220" height="220"></canvas>
+    <div class="draw-color-row" id="draw-color-row"></div>
+    <div class="draw-btn-row">
+      <button class="btn-ghost" id="btn-draw-clear">🧽 지우기</button>
+      <button class="btn-ghost" id="btn-draw-skip">건너뛰기</button>
+      <button class="btn" id="btn-draw-done">완료!</button>
+    </div>
+  </div>
+
+  <!-- Screen 1: item -->
+  <div class="screen" id="screen-item">
+    <div class="logo" id="greet-logo"></div>
+    <div class="currency-switch-row" id="currency-switch-row" style="display:none;">
+      <button class="currency-btn active" id="btn-currency-krw" data-currency="KRW">🇰🇷 원화</button>
+      <button class="currency-btn" id="btn-currency-idr" data-currency="IDR">🇮🇩 루피아</button>
+    </div>
+    <div class="item-emoji">🛍️</div>
+    <h1>오늘은 무슨 물건을<br>사셨나요?</h1>
+    <div class="sub">뭘 샀는지 솔직하게 적어보세요</div>
+    <input type="text" id="input-item" placeholder="예: 버스, 신발, 텀블러..." maxlength="20">
+    <div class="amount-wrap">
+      <input type="text" id="input-amount" placeholder="얼마였나요? (숫자만)" inputmode="numeric">
+      <span class="won" id="won-label-item">원</span>
+    </div>
+    <div class="datetime-row">
+      <input type="date" id="input-date">
+      <input type="time" id="input-time">
+    </div>
+    <button class="btn" id="btn-item-next" disabled>다음으로</button>
+    <div class="home-extra-row">
+      <button class="big-action-btn piggy-action" id="btn-go-piggy">
+        <span class="big-action-emoji">🐷</span>
+        <span class="big-action-text">오늘 아낀 돈<br>저금하기</span>
+      </button>
+      <button class="big-action-btn income-action" id="btn-go-income">
+        <span class="big-action-emoji">💰</span>
+        <span class="big-action-text">입금하기<br>(용돈/월급)</span>
+      </button>
+    </div>
+    <button class="link-btn" id="btn-go-ledger-from-item">📒 장부 확인하기</button>
+    <button class="link-btn" id="btn-switch-user">👤 다른 닉네임으로 바꾸기</button>
+  </div>
+
+  <!-- Screen 2: choice -->
+  <div class="screen" id="screen-choice">
+    <div class="logo" id="item-logo"></div>
+    <div class="item-emoji" id="item-emoji-display">🎁</div>
+    <h1 id="choice-title">이 소비는<br>어떤 소비였나요?</h1>
+    <div class="choice-row">
+      <button class="choice-btn choice-good" data-choice="good">😇 합리적인 소비</button>
+      <button class="choice-btn choice-soso" data-choice="soso">🤔 애매해</button>
+      <button class="choice-btn choice-bad" data-choice="bad">😈 비합리적인 소비</button>
+    </div>
+    <button class="link-btn" id="btn-choice-back">← 뒤로 돌아가기</button>
+  </div>
+
+  <!-- Screen 3: result -->
+  <div class="screen" id="screen-result">
+    <div class="result-stage" id="result-stage">
+      <div class="result-text" id="result-text"></div>
+      <div class="center-item" id="result-item">🎁</div>
+      <div class="stamp" id="stamp">굿!</div>
+      <div class="crowd" id="crowd"></div>
+      <div class="ground"></div>
+    </div>
+    <div class="result-msg" id="result-msg"></div>
+    <div class="footer-name" id="footer-name"></div>
+    <div class="replay-wrap">
+      <button class="btn-ghost" id="btn-again">다른 물건 자랑하기</button>
+      <button class="btn-ghost" id="btn-go-ledger-from-result">📒 장부 보기</button>
+    </div>
+  </div>
+
+  <!-- Screen: income -->
+  <div class="screen" id="screen-income">
+    <div class="logo">💰 입금하기</div>
+    <div class="item-emoji">🏦</div>
+    <h1>용돈이나 월급이<br>들어왔나요?</h1>
+    <div class="chip-row" id="income-label-row">
+      <button class="chip" data-label="용돈">용돈</button>
+      <button class="chip" data-label="월급">월급</button>
+      <button class="chip" data-label="기타">기타</button>
+    </div>
+    <div class="amount-wrap">
+      <input type="text" id="input-income-amount" placeholder="얼마 들어왔나요? (숫자만)" inputmode="numeric">
+      <span class="won" id="won-label-income">원</span>
+    </div>
+    <button class="btn" id="btn-income-save" disabled>입금 완료!</button>
+    <button class="link-btn" id="btn-income-back">← 뒤로 돌아가기</button>
+  </div>
+
+  <!-- Screen: income result (입금 축하) -->
+  <div class="screen" id="screen-income-result">
+    <div class="result-stage" id="income-result-stage">
+      <div class="result-text" id="income-result-text">💰 입금 완료! 💰</div>
+      <div class="center-item">🏦</div>
+      <div class="crowd" id="income-crowd"></div>
+      <div class="ground"></div>
+    </div>
+    <div class="result-msg" id="income-result-msg"></div>
+    <div class="replay-wrap">
+      <button class="btn-ghost" id="btn-income-result-ok">홈으로</button>
+    </div>
+  </div>
+
+  <!-- Screen: piggy bank -->
+  <div class="screen" id="screen-piggy">
+    <div class="logo">🐷 오늘의 저금통</div>
+    <h1>오늘 안 산 물건,<br>얼마나 아꼈나요?</h1>
+    <div class="sub">동전을 눌러서 돼지 저금통에 쏙!</div>
+    <div class="piggy-stage" id="piggy-stage">
+      <div class="piggy-emoji" id="piggy-emoji">🐷</div>
+    </div>
+    <div class="piggy-total" id="piggy-total">0원 모았어요</div>
+    <div class="coin-row" id="piggy-coin-row">
+      <button class="coin-btn" id="coin-btn-1" data-coin="50000"><span class="coin-visual bill-50000">5만</span><span>5만원</span></button>
+      <button class="coin-btn" id="coin-btn-2" data-coin="10000"><span class="coin-visual bill-10000">1만</span><span>만원</span></button>
+      <button class="coin-btn" id="coin-btn-3" data-coin="1000"><span class="coin-visual bill-1000">1천</span><span>천원</span></button>
+      <button class="coin-btn" id="coin-btn-4" data-coin="500"><span class="coin-visual coin-500">500</span><span>500원</span></button>
+      <button class="coin-btn" id="coin-btn-5" data-coin="100"><span class="coin-visual coin-100">100</span><span>100원</span></button>
+    </div>
+    <div class="replay-wrap">
+      <button class="btn-ghost" id="btn-piggy-reset">↺ 다시하기</button>
+      <button class="btn" id="btn-piggy-save" disabled>저금하기</button>
+    </div>
+    <button class="link-btn" id="btn-piggy-back">← 뒤로 돌아가기</button>
+  </div>
+
+  <!-- Screen: piggy result (이번 달 아낀 돈 자랑) -->
+  <div class="screen" id="screen-piggy-result">
+    <div class="result-stage" id="piggy-result-stage">
+      <div class="result-text" id="piggy-result-text">이번 달 아낀 돈은!!</div>
+      <div class="center-item" id="piggy-result-amount">0원</div>
+      <div class="crowd" id="piggy-crowd"></div>
+      <div class="ground"></div>
+    </div>
+    <div class="result-msg" id="piggy-result-msg"></div>
+    <div class="replay-wrap">
+      <button class="btn-ghost" id="btn-piggy-result-ok">홈으로</button>
+    </div>
+  </div>
+
+  <!-- Screen 4: ledger -->
+  <div class="screen" id="screen-ledger">
+    <div class="top-link-row" style="position:static; align-self:flex-end;">
+      <button id="btn-ledger-back">← 돌아가기</button>
+    </div>
+    <div class="logo" id="ledger-logo">📒 나의 소비 장부</div>
+    <div class="ledger-book">
+      <div class="ledger-header" id="ledger-header">소비 기록</div>
+      <div class="nav-header" id="nav-header">
+        <button class="nav-arrow" id="nav-prev">◀</button>
+        <div class="nav-title" id="nav-title">2026년 6월</div>
+        <button class="nav-arrow" id="nav-next">▶</button>
+      </div>
+      <div class="view-toggle ledger-toolbar">
+        <button id="btn-view-toggle">📅 연도별로 보기</button>
+        <button id="btn-delete-mode">🗑 선택 삭제</button>
+      </div>
+      <div class="ledger-toolbar">
+        <button id="btn-go-piggy-result">🐽 아낀 돈 자랑하기</button>
+      </div>
+      <div class="stats-box" id="stats-box"></div>
+      <div class="month-summary" id="month-summary"></div>
+      <div id="note-area"></div>
+      <div class="ledger-list" id="ledger-list"></div>
+      <div class="delete-bar" id="delete-bar">
+        <span id="delete-count">0개 선택됨</span>
+        <div class="dbtns">
+          <button class="cancel-del" id="btn-delete-cancel">취소</button>
+          <button class="confirm-del" id="btn-delete-confirm">삭제</button>
+        </div>
+      </div>
+      <div class="year-grid" id="year-grid" style="display:none;"></div>
+      <div class="profile-doodle-wrap" id="profile-doodle-wrap" style="display:none;">
+        <img id="profile-doodle-img" class="profile-doodle" alt="내 캐릭터">
+        <div class="profile-doodle-caption" id="profile-doodle-caption">내가 그린 캐릭터</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------- 저장소 폴리필 (window.storage가 없는 환경 대비) ----------
+(function(){
+  if(window.storage && typeof window.storage.get === 'function') return;
+  function lsKey(key, shared){ return 'shop_show_off::' + (shared ? 'shared::' : 'priv::') + key; }
+  window.storage = {
+    async get(key, shared){
+      try{
+        const raw = localStorage.getItem(lsKey(key, shared));
+        if(raw === null) return null;
+        return { key, value: raw, shared: !!shared };
+      }catch(err){ return null; }
+    },
+    async set(key, value, shared){
+      try{
+        localStorage.setItem(lsKey(key, shared), value);
+        return { key, value, shared: !!shared };
+      }catch(err){ console.error('storage set 실패', err); return null; }
+    },
+    async delete(key, shared){
+      try{
+        localStorage.removeItem(lsKey(key, shared));
+        return { key, deleted:true, shared: !!shared };
+      }catch(err){ return null; }
+    },
+    async list(prefix, shared){
+      try{
+        const out = [];
+        const pfx = lsKey(prefix || '', shared);
+        for(let i=0;i<localStorage.length;i++){
+          const k = localStorage.key(i);
+          if(k && k.indexOf(pfx) === 0) out.push(k.slice(('shop_show_off::' + (shared?'shared::':'priv::')).length));
+        }
+        return { keys: out, prefix, shared: !!shared };
+      }catch(err){ return null; }
+    }
+  };
+})();
+
+// ---------- 한글 조사 처리 ----------
+function hasBatchim(str){
+  if(!str) return false;
+  const lastChar = str.trim().charAt(str.trim().length - 1);
+  const code = lastChar.charCodeAt(0);
+  if(code < 0xAC00 || code > 0xD7A3) return false; // not hangul syllable
+  return (code - 0xAC00) % 28 !== 0;
+}
+function josa(word, withBatchim, withoutBatchim){
+  return word + (hasBatchim(word) ? withBatchim : withoutBatchim);
+}
+function eunNeun(word){ return josa(word, '은', '는'); }
+function iGa(word){ return josa(word, '이', '가'); }
+function eulReul(word){ return josa(word, '을', '를'); }
+function gwaWa(word){ return josa(word, '과', '와'); }
+// "이름이의" / "이름의" — 받침 있으면 이의, 없으면 의
+function iUi(word){ return josa(word, '이의', '의'); }
+
+// ---------- 상태 ----------
+let userName = '';
+let itemName = '';
+
+// ---------- 동생(말랑콩떡) 전용 통화 선택 ----------
+const MALLANG_NAME = '말랑콩떡';
+let currentCurrency = 'KRW'; // 'KRW' | 'IDR'
+
+function isMallang(){ return userName === MALLANG_NAME; }
+function unitLabel(){ return (isMallang() && currentCurrency === 'IDR') ? 'Rp' : '원'; }
+function fmtAmt(n){
+  return (isMallang() && currentCurrency === 'IDR')
+    ? (n || 0).toLocaleString('id-ID')
+    : (n || 0).toLocaleString('ko-KR');
+}
+function moneyStr(n){ return `${fmtAmt(n)}${unitLabel()}`; }
+
+function updateCurrencyUI(){
+  const row = document.getElementById('currency-switch-row');
+  if(row) row.style.display = isMallang() ? 'flex' : 'none';
+  const krwBtn = document.getElementById('btn-currency-krw');
+  const idrBtn = document.getElementById('btn-currency-idr');
+  if(krwBtn) krwBtn.classList.toggle('active', currentCurrency === 'KRW');
+  if(idrBtn) idrBtn.classList.toggle('active', currentCurrency === 'IDR');
+  const label = unitLabel();
+  const wonItem = document.getElementById('won-label-item');
+  const wonIncome = document.getElementById('won-label-income');
+  if(wonItem) wonItem.textContent = label;
+  if(wonIncome) wonIncome.textContent = label;
+  applyCoinDenoms();
+}
+
+async function loadCurrencyPref(){
+  if(!isMallang()){
+    currentCurrency = 'KRW';
+    updateCurrencyUI();
+    return;
+  }
+  try{
+    const res = await window.storage.get(scopedKey('currency_pref'));
+    currentCurrency = (res && (res.value === 'IDR' || res.value === 'KRW')) ? res.value : 'KRW';
+  }catch(err){
+    currentCurrency = 'KRW';
+  }
+  updateCurrencyUI();
+}
+async function saveCurrencyPref(){
+  if(!isMallang()) return;
+  try{ await window.storage.set(scopedKey('currency_pref'), currentCurrency); }catch(err){}
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ---------- 닉네임별 저장소 분리 ----------
+function scopedKey(base){
+  const safeName = (userName || 'guest').trim().replace(/[\s\/\\'"]/g, '_').slice(0, 40);
+  return `${base}__user_${safeName}`;
+}
+
+// ---------- 이름 입력 ----------
+const inputName = document.getElementById('input-name');
+const btnNameNext = document.getElementById('btn-name-next');
+inputName.addEventListener('input', () => {
+  btnNameNext.disabled = inputName.value.trim().length === 0;
+});
+inputName.addEventListener('keydown', e => { if(e.key === 'Enter' && !btnNameNext.disabled) btnNameNext.click(); });
+btnNameNext.addEventListener('click', () => {
+  const typed = inputName.value.trim();
+  if(typed !== userName){
+    viewYear = undefined; viewMonth = undefined;
+    profileImage = '';
+  }
+  userName = typed;
+  loadCurrencyPref();
+  document.getElementById('greet-logo').textContent = `${iUi(userName)} 소비 자랑 대회`;
+  document.getElementById('draw-logo').textContent = `${eunNeun(userName)}의 캐릭터`;
+  setDefaultDateTime();
+  showScreen('screen-draw');
+  setTimeout(initDrawCanvas, 50);
+});
+
+document.getElementById('btn-currency-krw').addEventListener('click', () => {
+  currentCurrency = 'KRW';
+  updateCurrencyUI();
+  saveCurrencyPref();
+});
+document.getElementById('btn-currency-idr').addEventListener('click', () => {
+  currentCurrency = 'IDR';
+  updateCurrencyUI();
+  saveCurrencyPref();
+});
+
+function setDefaultDateTime(){
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('input-date').value = dateStr;
+  document.getElementById('input-time').value = timeStr;
+}
+
+// ---------- 프로필 그리기 ----------
+const PROFILE_PREFIX = 'profile_';
+let profileImage = ''; // dataURL
+let drawCanvasReady = false;
+
+function initDrawCanvas(){
+  const canvas = document.getElementById('draw-canvas');
+  const ctx = canvas.getContext('2d');
+  if(!drawCanvasReady){
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    drawCanvasReady = true;
+  }
+  let drawing = false;
+  let currentColor = '#2B2118';
+  let lastX = 0, lastY = 0;
+
+  const colors = ['#2B2118','#FF8A3D','#5B6CFF','#34B97A','#FF5E7E','#FFC15E'];
+  const colorRow = document.getElementById('draw-color-row');
+  colorRow.innerHTML = '';
+  colors.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (i === 0 ? ' active' : '');
+    sw.style.background = c;
+    sw.addEventListener('click', () => {
+      currentColor = c;
+      colorRow.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+    });
+    colorRow.appendChild(sw);
+  });
+
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const point = e.touches ? e.touches[0] : e;
+    return {
+      x: (point.clientX - rect.left) * scaleX,
+      y: (point.clientY - rect.top) * scaleY
+    };
+  }
+  function startDraw(e){
+    e.preventDefault();
+    drawing = true;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    ctx.fillStyle = currentColor;
+    ctx.fill();
+  }
+  function moveDraw(e){
+    if(!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function endDraw(){ drawing = false; }
+
+  canvas.onmousedown = startDraw;
+  canvas.onmousemove = moveDraw;
+  window.addEventListener('mouseup', endDraw);
+  canvas.ontouchstart = startDraw;
+  canvas.ontouchmove = moveDraw;
+  canvas.ontouchend = endDraw;
+
+  document.getElementById('btn-draw-clear').onclick = () => {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  };
+  document.getElementById('btn-draw-skip').onclick = () => {
+    profileImage = '';
+    goToItemScreen();
+  };
+  document.getElementById('btn-draw-done').onclick = async () => {
+    profileImage = canvas.toDataURL('image/png');
+    if(userName){
+      try{ await window.storage.set(PROFILE_PREFIX + userName, profileImage, false); }
+      catch(err){ console.error('프로필 저장 실패', err); }
+    }
+    goToItemScreen();
+  };
+}
+
+function applyProfileIcon(targetId, fallbackText, plainLabel){
+  const el = document.getElementById(targetId);
+  if(!el) return;
+  if(profileImage){
+    el.innerHTML = `<img src="${profileImage}" class="profile-icon" alt="프로필">${plainLabel !== undefined ? plainLabel : fallbackText}`;
+  } else {
+    el.textContent = fallbackText;
+  }
+}
+
+function goToItemScreen(){
+  applyProfileIcon('greet-logo', `${iUi(userName)} 소비 자랑 대회`, `${iUi(userName)} 소비 자랑 대회`);
+  showScreen('screen-item');
+  setTimeout(()=>document.getElementById('input-item').focus(), 200);
+}
+
+// ---------- 물건 / 금액 입력 ----------
+const inputItem = document.getElementById('input-item');
+const inputAmount = document.getElementById('input-amount');
+const btnItemNext = document.getElementById('btn-item-next');
+let currentAmount = 0;
+
+function formatNumberInput(el){
+  const digits = el.value.replace(/[^0-9]/g, '');
+  currentAmount = digits ? parseInt(digits, 10) : 0;
+  el.value = digits ? fmtAmt(Number(digits)) : '';
+}
+function checkItemFormValid(){
+  btnItemNext.disabled = !(inputItem.value.trim().length > 0 && currentAmount > 0);
+}
+inputItem.addEventListener('input', checkItemFormValid);
+inputAmount.addEventListener('input', () => {
+  formatNumberInput(inputAmount);
+  checkItemFormValid();
+});
+inputItem.addEventListener('keydown', e => { if(e.key === 'Enter') inputAmount.focus(); });
+inputAmount.addEventListener('keydown', e => { if(e.key === 'Enter' && !btnItemNext.disabled) btnItemNext.click(); });
+
+const itemEmojiMap = [
+  { keys:['버스','지하철','택시','기차','전철'], emoji:'🚌' },
+  { keys:['신발','운동화','구두','샌들','슬리퍼'], emoji:'👟' },
+  { keys:['옷','티셔츠','바지','니트','자켓','코트','후드'], emoji:'👕' },
+  { keys:['커피','아메리카노','라떼'], emoji:'☕' },
+  { keys:['책'], emoji:'📚' },
+  { keys:['텀블러','컵'], emoji:'🥤' },
+  { keys:['가방','백팩'], emoji:'🎒' },
+  { keys:['휴대폰','핸드폰','아이폰','갤럭시'], emoji:'📱' },
+  { keys:['노트북','컴퓨터'], emoji:'💻' },
+  { keys:['과자','젤리','초콜릿','빵'], emoji:'🍪' },
+  { keys:['화장품','립스틱','향수'], emoji:'💄' },
+  { keys:['게임'], emoji:'🎮' },
+  { keys:['음식','밥','치킨','피자'], emoji:'🍗' },
+  { keys:['우산'], emoji:'☂️' },
+  { keys:['시계'], emoji:'⌚' },
+  { keys:['자동차','차'], emoji:'🚗' },
+  { keys:['로또'], emoji:'🎟️' },
+  { keys:['꽃'], emoji:'💐' },
+];
+function guessEmoji(text){
+  for(const group of itemEmojiMap){
+    if(group.keys.some(k => text.includes(k))) return group.emoji;
+  }
+  return '🎁';
+}
+
+btnItemNext.addEventListener('click', () => {
+  itemName = inputItem.value.trim();
+  const emoji = guessEmoji(itemName);
+  document.getElementById('item-logo').textContent = `${eunNeun(userName)} 오늘 ${eulReul(itemName)} 샀다`;
+  document.getElementById('item-emoji-display').textContent = emoji;
+  document.getElementById('choice-title').innerHTML = `${iGa(itemName)}<br>어떤 소비였나요?`;
+  showScreen('screen-choice');
+});
+
+// ---------- 선택 처리 ----------
+document.querySelectorAll('.choice-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    runResult(btn.dataset.choice);
+  });
+});
+
+document.getElementById('btn-choice-back').addEventListener('click', () => {
+  showScreen('screen-item');
+});
+
+document.getElementById('btn-again').addEventListener('click', () => {
+  inputItem.value = '';
+  inputAmount.value = '';
+  currentAmount = 0;
+  btnItemNext.disabled = true;
+  cleanupStage();
+  setDefaultDateTime();
+  showScreen('screen-item');
+  setTimeout(()=>document.getElementById('input-item').focus(), 200);
+});
+
+function cleanupStage(){
+  document.getElementById('crowd').innerHTML = '';
+  document.getElementById('stamp').classList.remove('show');
+  document.getElementById('result-stage').querySelectorAll('.confetti, .money, .speech').forEach(el => el.remove());
+  document.getElementById('result-item').style.animation = '';
+  document.getElementById('result-item').style.opacity = 1;
+  document.getElementById('result-item').style.transform = 'translate(-50%,-50%)';
+}
+
+function randomBetween(a,b){ return a + Math.random()*(b-a); }
+
+// ---------- 랜덤 멘트 (각 20개) ----------
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+const GOOD_LINES = [
+  (n,i)=> `${iGa(i)} 인생템이라는 소문이 전 세계로 퍼졌어요 🌍`,
+  (n,i)=> `${eunNeun(n)} 오늘 인류 발전에 기여했습니다 🏆`,
+  (n,i)=> `${eulReul(i)} 산 당신, 국가에서 표창장 줘야 함 🎖️`,
+  (n,i)=> `${iGa(i)} 너무 잘 어울려서 모두가 박수쳐요 👏`,
+  (n,i)=> `경제가 ${i} 덕분에 살아났대요 📈`,
+  (n,i)=> `${eunNeun(n)} 오늘부로 소비 천재로 등극했습니다 🧠`,
+  (n,i)=> `${iGa(i)} 명예의 전당에 박제되었습니다 🖼️`,
+  (n,i)=> `지구 반대편에서도 ${eulReul(i)} 사라고 난리예요 🌏`,
+  (n,i)=> `${eunNeun(n)} 오늘 소비왕 자격증 획득! 🥇`,
+  (n,i)=> `${i}, 이건 못 참지 정말 잘 샀다 👍`,
+  (n,i)=> `우주에서도 이 소식이 들렸대요, ${eunNeun(n)} 레전드 ✨`,
+  (n,i)=> `${eulReul(i)} 안 샀으면 큰일날 뻔했어요 😤`,
+  (n,i)=> `${iGa(i)} 당신을 위해 태어난 물건 같아요 💫`,
+  (n,i)=> `이건 소비가 아니라 투자예요, ${n} 천재! 💰`,
+  (n,i)=> `${eunNeun(n)} 합리적 소비 명예 시민이 되었습니다 🏅`,
+  (n,i)=> `세상 모든 사람이 ${eulReul(i)} 부러워하고 있어요 😍`,
+  (n,i)=> `${iGa(i)} 오늘의 베스트 구매로 선정되었습니다 🎯`,
+  (n,i)=> `${n}님, 오늘 지갑 한 번 잘 썼다 👏👏👏`,
+  (n,i)=> `이 소식을 들은 전 세계가 기립박수 중입니다 🙌`,
+  (n,i)=> `${eulReul(i)} 산 순간, 당신은 이미 승리자였어요 🏁`,
+];
+
+const SOSO_LINES = [
+  (n,i)=> `오... ${i} 샀구나... 잘했어 (영혼 0%) 👏`,
+  (n,i)=> `${eunNeun(n)} 굿... 굿이라고 해줄게 🙂`,
+  (n,i)=> `음 나쁘진 않네요. 그렇다고 좋지도 않고요 😐`,
+  (n,i)=> `${iGa(i)} 산 거... 뭐... 살 수도 있죠 🤷`,
+  (n,i)=> `잘했어요! (진심은 50% 정도) 👍`,
+  (n,i)=> `오 ${i}... 멋져요... 아마도요 ✨`,
+  (n,i)=> `${eunNeun(n)} 칭찬 받아 마땅... 한 것 같기도 하고 🙃`,
+  (n,i)=> `대단해요! 라고 일단 말해볼게요 😶`,
+  (n,i)=> `${i} 샀다고? 어... 그렇구나 👌`,
+  (n,i)=> `굳굳... 진짜 굳이에요 (텐션 낮음) 😑`,
+  (n,i)=> `${eunNeun(n)} 오늘도 소비를 하셨군요... 인정 ✅`,
+  (n,i)=> `잘 샀다고 쳐드릴게요, 토 달지 않을게요 😌`,
+  (n,i)=> `${iGa(i)} 나쁘지 않은 선택이었어요, 아마도 🤔`,
+  (n,i)=> `오케이 인정. 더 이상의 코멘트는 없습니다 📋`,
+  (n,i)=> `${i}... 음... 그래요 그럴 수 있어요 🫠`,
+  (n,i)=> `훌륭... 까지는 아니고 그냥 무난 👍`,
+  (n,i)=> `${eunNeun(n)} 평타는 쳤어요, 박수 짝짝 (작게) 👏`,
+  (n,i)=> `세상이 딱히 신경 안 쓰지만 일단 굳이에요 🌎`,
+  (n,i)=> `${iGa(i)} 그저 그런 소비, 그래도 괜찮아요 🆗`,
+  (n,i)=> `칭찬을 빙자한 영혼 없는 끄덕임... 굳 😶‍🌫️`,
+];
+
+const BAD_LINES = [
+  (n,i)=> `${eunNeun(n)} 그거 내가 가져간다, 환불은 내가 받아줄게 😈`,
+  (n,i)=> `${i}? 미안한데 이건 압수입니다 🚓`,
+  (n,i)=> `세상이 ${eulReul(i)} 뺏으러 다 같이 출동했어요 🏃‍♂️🏃‍♀️`,
+  (n,i)=> `이건 사회 환원이 필요한 소비네요, ${i} 압수! 📦`,
+  (n,i)=> `${iGa(i)} 우리가 더 잘 쓸게요, 미안 😏`,
+  (n,i)=> `당신의 물건은 이제 우리꺼! 환불금은 챙겨가세요 💸`,
+  (n,i)=> `${i} 가져간다... 대신 카드값은 빠질게요 안심하세요 🙏`,
+  (n,i)=> `세계 시민들이 ${eulReul(i)} 몰수하기로 결정했습니다 🗳️`,
+  (n,i)=> `${eunNeun(n)} 오늘부로 ${i} 사용 금지령이 내려졌어요 🚫`,
+  (n,i)=> `이건 좀... ${i}, 압수하고 환불 처리할게요 🧾`,
+  (n,i)=> `${iGa(i)} 우리 손에 넘어왔습니다, 협조 감사해요 🤝`,
+  (n,i)=> `소비 경찰 출동! ${i} 회수합니다 🚨`,
+  (n,i)=> `${n}님 죄송한데, ${i}는 국가가 압류합니다 🏛️`,
+  (n,i)=> `이건 못 본 걸로 할게요, ${i}는 저희가 ✋`,
+  (n,i)=> `${eulReul(i)} 돌려주는 대신 환불은 확실히 해드릴게요 💵`,
+  (n,i)=> `세상 사람들 다 같이 ${eulReul(i)} 압수하러 갑니다 👥`,
+  (n,i)=> `${iGa(i)} 우리가 더 필요해서요, 양해 부탁드려요 😅`,
+  (n,i)=> `이번 생엔 인연이 아니었나봐요, ${i} 회수할게요 🎬`,
+  (n,i)=> `${n}님 다음엔 더 신중하게! ${i}는 일단 가져갈게요 🚶`,
+  (n,i)=> `압류 완료! ${i} 대신 통장 잔고는 지켜드렸어요 🛡️`,
+];
+
+const SAVED_LINES = [
+  (n,amt)=> `${eunNeun(n)} 이번 달 절약왕입니다! 박수!! 👏`,
+  (n,amt)=> `미래의 ${n}이(가) 고마워하고 있어요 🙏`,
+  (n,amt)=> `이 돈으로 또 무슨 좋은 일이 생길까요?! 🌟`,
+  (n,amt)=> `소비 욕구를 이긴 당신, 진짜 대단해요 💪`,
+  (n,amt)=> `통장이 두둑해지는 소리가 들려요 🔔`,
+  (n,amt)=> `절약 신이 강림하셨습니다 🙌`,
+  (n,amt)=> `이건 못 참지, 너무 잘 참았다 🎉`,
+  (n,amt)=> `${n}님의 지갑이 미소짓고 있어요 😊`,
+  (n,amt)=> `오늘도 충동구매를 이겨낸 영웅 🦸`,
+  (n,amt)=> `돼지 저금통이 점점 무거워지네요 🐷`,
+  (n,amt)=> `이 정도면 절약 자격증 줘야 함 📜`,
+  (n,amt)=> `미래의 나에게 보내는 선물이에요 🎁`,
+  (n,amt)=> `전 세계가 당신의 절약을 응원합니다 🌍`,
+  (n,amt)=> `오늘 참은 당신, 내일은 더 빛날 거예요 ✨`,
+  (n,amt)=> `${n}님, 이 기세로 계속 가봅시다! 🔥`,
+  (n,amt)=> `통장 잔고 +1, 스트레스 -1 😌`,
+  (n,amt)=> `절약은 습관이죠, 이미 습관 마스터! 🏆`,
+  (n,amt)=> `여러분 모두 ${n}님을 본받으세요 📢`,
+  (n,amt)=> `이 돈으로 또 다른 꿈을 꿀 수 있겠네요 💭`,
+  (n,amt)=> `오늘의 ${n}, MVP 등극! 🏅`,
+];
+
+const INCOME_LINES = [
+  (n,amt)=> `${eunNeun(n)} 곧 젠슨황 삼촌이랑 가죽자켓 맞춰 입겠어요 🧥`,
+  (n,amt)=> `이재용 삼촌이 저녁 식사 약속 잡자고 연락 옴 📱`,
+  (n,amt)=> `${n}님 통장, 엔비디아 주식보다 가파르게 올랐어요 📈`,
+  (n,amt)=> `이 정도면 청담동 오마카세 예약 가능 🍣`,
+  (n,amt)=> `${eunNeun(n)} 이제 경제 인플루언서로 데뷔하세요 🎤`,
+  (n,amt)=> `워런 버핏이 ${n}님 포트폴리오 궁금해함 🕴️`,
+  (n,amt)=> `삼성 회장님이 명함 주고 가셨어요 💼`,
+  (n,amt)=> `${n}님 지갑, 오늘부로 시가총액 갱신 🚀`,
+  (n,amt)=> `이 돈이면 강남 모임 자리 하나는 사겠다 🥂`,
+  (n,amt)=> `${eunNeun(n)} 다음 생일선물은 본인이 쏘는 걸로 🎂`,
+  (n,amt)=> `젠슨황 삼촌이 가죽자켓 사이즈 물어봄 🧥`,
+  (n,amt)=> `${n}님, 곧 엔비디아 본사 초청장 올 듯 ✉️`,
+  (n,amt)=> `통장 잔고가 GPU 가격을 추월하고 있어요 💻`,
+  (n,amt)=> `이 기세면 이번 주말은 한남동에서 보내겠네요 🏙️`,
+  (n,amt)=> `${eunNeun(n)} 재테크 유튜브 채널 개설 각 📹`,
+  (n,amt)=> `삼성가 모임에 ${n}님 자리 하나 만들어둘게요 🪑`,
+  (n,amt)=> `이 정도 입금이면 명함에 '자산가' 적어도 됨 🪪`,
+  (n,amt)=> `${n}님 덕분에 원화 가치가 잠깐 올랐어요 💱`,
+  (n,amt)=> `젠슨황 삼촌이 디너 코스 예약했다고 연락옴 🍽️`,
+  (n,amt)=> `${eunNeun(n)} 오늘부로 AI 광고 모델 후보로 거론됨 ✨`,
+];
+
+// ---------- 말랑콩떡(동생) 전용 랜덤 멘트 (각 50개) ----------
+const MALLANG_GOOD_LINES = [
+  (n,i)=> `${i}가 인생템이라는 소문이 전 세계로 퍼졌어요 🌍`,
+  (n,i)=> `가은은 오늘 인류 발전에 기여했습니다 🏆`,
+  (n,i)=> `${i}를 산 당신, 표창장 줘야 함 🎖️`,
+  (n,i)=> `${i}가 너무 잘 어울려서 모두가 박수쳐요 👏`,
+  (n,i)=> `경제가 ${i} 덕분에 살아났대요 📈`,
+  (n,i)=> `가은은 오늘부로 소비 천재로 등극했습니다 🧠`,
+  (n,i)=> `${i}가 명예의 전당에 박제되었습니다 🖼️`,
+  (n,i)=> `지구 반대편에서도 ${i}를 사라고 난리예요 🌏`,
+  (n,i)=> `가은은 오늘 소비왕 자격증 획득! 🥇`,
+  (n,i)=> `${i}, 이건 못 참지 정말 잘 샀다 👍`,
+  (n,i)=> `우주에서도 이 소식이 들렸대요, 가은은 레전드 ✨`,
+  (n,i)=> `${i}를 안 샀으면 큰일날 뻔했어요 😤`,
+  (n,i)=> `${i}가 당신을 위해 태어난 물건 같아요 💫`,
+  (n,i)=> `이건 소비가 아니라 투자예요, 가은 천재! 💰`,
+  (n,i)=> `가은은 합리적 소비 명예 시민이 되었습니다 🏅`,
+  (n,i)=> `세상 모든 사람이 ${i}를 부러워하고 있어요 😍`,
+  (n,i)=> `${i}가 오늘의 베스트 구매로 선정되었습니다 🎯`,
+  (n,i)=> `가은님, 오늘 지갑 한 번 잘 썼다 👏👏👏`,
+  (n,i)=> `이 소식을 들은 전 세계가 기립박수 중입니다 🙌`,
+  (n,i)=> `${i}를 산 순간, 당신은 이미 승리자였어요 🏁`,
+  (n,i)=> `${i}가 오늘 자로 명품 반열에 올랐습니다 👑`,
+  (n,i)=> `가은은 소비계의 다음 타자로 지목됐어요 🎬`,
+  (n,i)=> `${i} 산 덕분에 오늘 하루가 완벽했어요 🌈`,
+  (n,i)=> `${i}를 고른 안목, 인정하지 않을 수 없네요 🧐`,
+  (n,i)=> `가은은 오늘 소비 센스, 만점이에요 ⭐`,
+  (n,i)=> `${i}가 보자마자 다들 엄지척 했어요 👍`,
+  (n,i)=> `${i} 사고 나서 세상이 달라 보이죠? 😊`,
+  (n,i)=> `${i}를 선택한 오늘, 역사에 기록될 거예요 📖`,
+  (n,i)=> `${i}가 이미 레전드 소비로 인정받았어요 🏆`,
+  (n,i)=> `가은은 앞으로도 이 안목을 유지해줘요 🔥`,
+  (n,i)=> `${i} 산 거, 두고두고 잘 샀다 싶을 거예요 🌟`,
+  (n,i)=> `${i}를 고른 순간 전 세계가 고개를 끄덕였어요 🌍`,
+  (n,i)=> `${i}가 오늘의 MVP 소비입니다 🥇`,
+  (n,i)=> `가은은 오늘 지갑을 가장 영리하게 쓰셨어요 💡`,
+  (n,i)=> `${i} 한 번 사놓으면 다들 부러워할 거예요 😎`,
+  (n,i)=> `${i}가 잘 샀으니까 스티커 100장은 적립이에요 🧸`,
+  (n,i)=> `${i}를 산 기념으로 말랑이 신상 구경 가도 됩니다 🐻`,
+  (n,i)=> `오늘 ${i} 산 거 보니까 스티커북 한 페이지 채워줄게요 📒`,
+  (n,i)=> `가은은 오늘부로 스티커 적립왕이에요 🏅`,
+  (n,i)=> `${i}가 잘 골랐으니 말랑이 한 마리 데려와도 돼요 🧸`,
+  (n,i)=> `이 정도면 동묘 가서 말랑이 구경할 자격 충분해요 🚶`,
+  (n,i)=> `${i}를 산 안목, 말랑이도 인정할 거예요 ✨`,
+  (n,i)=> `스티커 좋아하는 사람답게 오늘도 센스 있게 잘 샀네요 🌟`,
+  (n,i)=> `${i}가 너무 잘 어울려서 스티커 한 장 추가요 🎁`,
+  (n,i)=> `오늘 같은 날엔 동묘 들러서 말랑이 구경해도 됩니다 🐾`,
+  (n,i)=> `가은은 말랑이 못지않게 보들보들한 안목이에요 🤍`,
+  (n,i)=> `잘 샀으니 다음 용돈날엔 스티커 사는 거 인정이에요 🧸`,
+  (n,i)=> `${i} 보고 있으니 말랑이 생각이 절로 나네요 🐻`,
+  (n,i)=> `이건 못 참지, 스티커 보너스 적립 갑니다 🎀`,
+  (n,i)=> `오늘의 소비 점수, 스티커 다섯 장으로 환산해드려요 📌`,
+];
+
+const MALLANG_SOSO_LINES = [
+  (n,i)=> `오... ${i} 샀구나... 잘했어 (영혼 0%) 👏`,
+  (n,i)=> `가은은 굿... 굿이라고 해줄게 🙂`,
+  (n,i)=> `음 나쁘진 않네요. 그렇다고 좋지도 않고요 😐`,
+  (n,i)=> `${i}가 산 거... 뭐... 살 수도 있죠 🤷`,
+  (n,i)=> `잘했어요! (진심은 50% 정도) 👍`,
+  (n,i)=> `오 ${i}... 멋져요... 아마도요 ✨`,
+  (n,i)=> `가은은 칭찬 받아 마땅... 한 것 같기도 하고 🙃`,
+  (n,i)=> `대단해요! 라고 일단 말해볼게요 😶`,
+  (n,i)=> `${i} 샀다고? 어... 그렇구나 👌`,
+  (n,i)=> `굳굳... 진짜 굳이에요 (텐션 낮음) 😑`,
+  (n,i)=> `가은은 오늘도 소비를 하셨군요... 인정 ✅`,
+  (n,i)=> `잘 샀다고 쳐드릴게요, 토 달지 않을게요 😌`,
+  (n,i)=> `${i}가 나쁘지 않은 선택이었어요, 아마도 🤔`,
+  (n,i)=> `오케이 인정. 더 이상의 코멘트는 없습니다 📋`,
+  (n,i)=> `${i}... 음... 그래요 그럴 수 있어요 🫠`,
+  (n,i)=> `훌륭... 까지는 아니고 그냥 무난 👍`,
+  (n,i)=> `가은은 평타는 쳤어요, 박수 짝짝 (작게) 👏`,
+  (n,i)=> `세상이 딱히 신경 안 쓰지만 일단 굳이에요 🌎`,
+  (n,i)=> `${i}가 그저 그런 소비, 그래도 괜찮아요 🆗`,
+  (n,i)=> `칭찬을 빙자한 영혼 없는 끄덕임... 굳 😶‍🌫️`,
+  (n,i)=> `${i} 산 거, 점수로 치면 딱 중간이에요 ⚖️`,
+  (n,i)=> `가은은 오늘은 그냥 그런 날인가 봐요 🌤️`,
+  (n,i)=> `나쁘다고는 안 했어요, 좋다고도 안 했지만요 😶`,
+  (n,i)=> `${i}를 산 거 일단 보류 도장 찍어둘게요 🔖`,
+  (n,i)=> `${i}가 음... 반은 인정, 반은 보류예요 🤏`,
+  (n,i)=> `뭐 나쁜 소비는 아니에요, 칭찬도 아니고요 🙂`,
+  (n,i)=> `가은은 그냥저냥 사셨군요, 인정은 할게요 🫡`,
+  (n,i)=> `${i} 산 거, 솔직히 말하면 딱히 할 말 없어요 😑`,
+  (n,i)=> `${i}가 살 만은 한데 딱히 대단하진 않아요 🤷`,
+  (n,i)=> `가은은 오늘은 그냥 평범한 소비자셨어요 📊`,
+  (n,i)=> `${i} 음... 뭐 그럴 수 있죠 사람이 😮‍💨`,
+  (n,i)=> `${i}를 그냥 샀군요, 이런 날도 있는 거죠 🌥️`,
+  (n,i)=> `영혼 없이 박수 한 번 쳐드릴게요 👏`,
+  (n,i)=> `${i}가 딱히 더 할 말이 없어요, 그냥 굳이에요 ✅`,
+  (n,i)=> `가은은 그냥 보통으로 사셨어요, 그래도 수고요 💫`,
+  (n,i)=> `오... ${i} 샀구나... 스티커는 일단 보류예요 🙂`,
+  (n,i)=> `${i}가 산 거... 말랑이는 다음에 보러 가요 🤷`,
+  (n,i)=> `음 나쁘진 않은데, 동묘는 다음 주에 가는 걸로 해요 😐`,
+  (n,i)=> `가은은 오늘도 소비했군요, 스티커는 반 장만요 🧸`,
+  (n,i)=> `${i} 그저 그런데, 말랑이는 사진으로 만족해요 🫠`,
+  (n,i)=> `굳... 이라고 해줄게요, 스티커는 다음 기회에 🙃`,
+  (n,i)=> `${i}를 샀다고? 음... 동묘는 일단 보류네요 👌`,
+  (n,i)=> `가은은 평타는 쳤네요, 말랑이는 구경만 하기로 해요 📋`,
+  (n,i)=> `${i} 나쁘지 않았어요, 스티커 적립은 절반만요 🤔`,
+  (n,i)=> `애매한데 일단 인정, 말랑이는 마음속으로만요 😶`,
+  (n,i)=> `오... ${i} 음... 동묘는 다음에 가는 걸로 해요 🙂`,
+  (n,i)=> `${i}가 산 거 그냥저냥이네요, 스티커는 보류 처리할게요 📌`,
+  (n,i)=> `말랑이도 고민하는 표정이에요, ${i} 샀다고 하니까요 🫥`,
+  (n,i)=> `가은은 스티커북에 작은 도장만 찍어둘게요 🔖`,
+  (n,i)=> `${i} 산 거, 동묘 나들이는 다음으로 미뤄둘게요 🗺️`,
+];
+
+const MALLANG_BAD_LINES = [
+  (n,i)=> `가은은 그거 내가 가져간다, 환불은 내가 받아줄게 😈`,
+  (n,i)=> `${i}? 미안한데 이건 압수입니다 🚓`,
+  (n,i)=> `세상이 ${i}를 뺏으러 다 같이 출동했어요 🏃`,
+  (n,i)=> `이건 사회 환원이 필요한 소비네요, ${i} 압수! 📦`,
+  (n,i)=> `${i}가 우리가 더 잘 쓸게요, 미안 😏`,
+  (n,i)=> `당신의 물건은 이제 우리꺼! 환불금은 챙겨가세요 💸`,
+  (n,i)=> `${i} 가져간다... 대신 카드값은 빠질게요 안심하세요 🙏`,
+  (n,i)=> `모두가 ${i}를 몰수하기로 결정했습니다 🗳️`,
+  (n,i)=> `가은은 오늘부로 ${i} 사용 금지령이 내려졌어요 🚫`,
+  (n,i)=> `이건 좀... ${i}, 압수하고 환불 처리할게요 🧾`,
+  (n,i)=> `${i}가 우리 손에 넘어왔습니다, 협조 감사해요 🤝`,
+  (n,i)=> `소비 경찰 출동! ${i} 회수합니다 🚨`,
+  (n,i)=> `가은님 죄송한데, ${i}는 압류합니다 🏛️`,
+  (n,i)=> `이건 못 본 걸로 할게요, ${i}는 저희가 ✋`,
+  (n,i)=> `${i}를 돌려주는 대신 환불은 확실히 해드릴게요 💵`,
+  (n,i)=> `세상 사람들 다 같이 ${i}를 압수하러 갑니다 👥`,
+  (n,i)=> `${i}가 우리가 더 필요해서요, 양해 부탁드려요 😅`,
+  (n,i)=> `이번 생엔 인연이 아니었나봐요, ${i} 회수할게요 🎬`,
+  (n,i)=> `가은님 다음엔 더 신중하게! ${i}는 일단 가져갈게요 🚶`,
+  (n,i)=> `압류 완료! ${i} 대신 통장 잔고는 지켜드렸어요 🛡️`,
+  (n,i)=> `${i}가 너무 과했어요, 오늘부로 압수입니다 🙅`,
+  (n,i)=> `가은은 다음 용돈날까지 ${i} 보관할게요 🗄️`,
+  (n,i)=> `${i} 산 거, 솔직히 너무했어요 회수합니다 🚨`,
+  (n,i)=> `${i}를 사느니 그 돈 모았으면 좋았을 텐데요 😅`,
+  (n,i)=> `${i}가 압수, 대신 다음엔 더 좋은 거 사드릴게요 🎁`,
+  (n,i)=> `가은은 이건 진짜 아니에요, 반납 각이에요 🔄`,
+  (n,i)=> `${i}가 솔직히 살 이유가 없었어요, 압수! 🚨`,
+  (n,i)=> `${i}를 회수하는 거 이해해줄 거죠? 😏`,
+  (n,i)=> `오늘은 ${i} 구매를 인정할 수가 없어요 ❌`,
+  (n,i)=> `${i} 샀다니... 회의가 소집됐어요 🗳️`,
+  (n,i)=> `가은은 다음엔 더 잘 고를 수 있을 거예요, 일단 압수 🗑️`,
+  (n,i)=> `${i}를 산 순간부터 회수 대기열에 올랐어요 😂`,
+  (n,i)=> `소비 심사 결과, ${i} 부결입니다 🔨`,
+  (n,i)=> `${i}가 오늘 최악의 소비로 선정됐어요 🏆`,
+  (n,i)=> `가은은 지갑이 울고 있어요, 당장 환불 가세요 😭`,
+  (n,i)=> `가은은 그거 압수, 대신 스티커로 위로해드릴게요 😈`,
+  (n,i)=> `${i}? 미안한데 압수예요, 말랑이는 다음에 봐요 🚓`,
+  (n,i)=> `${i}가 우리가 가져갈게요, 동묘는 다음에 가요 😏`,
+  (n,i)=> `${i}를 압수합니다, 대신 스티커 적립으로 퉁칠게요 📦`,
+  (n,i)=> `가은은 오늘부로 ${i} 사용 금지, 말랑이도 동의했어요 🚫`,
+  (n,i)=> `이건 좀... ${i}, 압수하고 동묘 출입도 보류할게요 🧾`,
+  (n,i)=> `소비 경찰 출동! ${i} 회수, 말랑이도 한숨 쉬네요 🚨`,
+  (n,i)=> `가은님 죄송한데 ${i}는 압류, 동묘는 다음 기회에요 🏛️`,
+  (n,i)=> `이건 못 본 걸로 할게요, 말랑이도 고개를 저어요 ✋`,
+  (n,i)=> `${i}를 돌려주는 대신 스티커 적금은 깨질 거예요 💵`,
+  (n,i)=> `${i}가 우리가 더 필요해서요, 동묘 가는 건 다음에요 😅`,
+  (n,i)=> `가은님 다음엔 더 신중하게! 스티커도 잠시 압수예요 🚶`,
+  (n,i)=> `압류 완료! 대신 말랑이는 건드리지 않을게요 🛡️`,
+  (n,i)=> `${i}가 너무 과했어요, 오늘 스티커 적립은 없어요 🙅`,
+  (n,i)=> `가은은 말랑이가 보더니 고개를 절레절레 했어요 🐻`,
+];
+
+const MALLANG_INCOME_LINES = [
+  (n,amt)=> `가은은 통장이 오늘따라 더 든든해 보여요 📈`,
+  (n,amt)=> `이 정도면 오늘 하루는 부자가 된 기분이겠네요 🥂`,
+  (n,amt)=> `가은은 이제 경제 인플루언서로 데뷔하세요 🎤`,
+  (n,amt)=> `가은님 지갑, 오늘부로 두둑해졌어요 💼`,
+  (n,amt)=> `통장 잔고가 가파르게 올라가고 있어요 🚀`,
+  (n,amt)=> `이 기세면 이번 주말은 든든하게 보내겠네요 🏙️`,
+  (n,amt)=> `가은은 재테크 천재로 거듭나는 중이에요 📹`,
+  (n,amt)=> `가은님 덕분에 오늘 통장이 미소짓고 있어요 💱`,
+  (n,amt)=> `이 정도 입금이면 자산가 소리 들어도 됩니다 🪪`,
+  (n,amt)=> `가은은 오늘부로 용돈왕 등극이에요 ✨`,
+  (n,amt)=> `통장이 든든해지는 소리가 여기까지 들려요 🔔`,
+  (n,amt)=> `입금 신이 강림하셨습니다 🙌`,
+  (n,amt)=> `가은님의 지갑이 오늘따라 빛나네요 😊`,
+  (n,amt)=> `오늘도 들어온 용돈, 잘 쓰면 두 배로 행복해요 🦸`,
+  (n,amt)=> `통장 잔고 +1, 기분 +100 😌`,
+  (n,amt)=> `이 정도면 용돈 자격증 줘도 됩니다 📜`,
+  (n,amt)=> `미래의 가은이에게 보내는 선물 같은 입금이에요 🎁`,
+  (n,amt)=> `오늘 들어온 돈, 내일은 더 빛나게 써봐요 ✨`,
+  (n,amt)=> `가은님, 이 기세로 계속 가봅시다! 🔥`,
+  (n,amt)=> `여러분 모두 가은님 통장을 본받으세요 📢`,
+  (n,amt)=> `이 돈으로 또 다른 꿈을 꿀 수 있겠네요 💭`,
+  (n,amt)=> `오늘의 가은, 입금왕 등극! 🏅`,
+  (n,amt)=> `가은은 통장 잔고 신기록을 세웠어요 🏆`,
+  (n,amt)=> `용돈 들어온 날은 왠지 더 기분이 좋아요 😄`,
+  (n,amt)=> `가은은 오늘부로 든든한 지갑 보유자예요 👛`,
+  (n,amt)=> `입금 소리가 들릴 때마다 기분이 좋아지죠 💰`,
+  (n,amt)=> `오늘도 차곡차곡 쌓이는 통장이 기특해요 💹`,
+  (n,amt)=> `가은은 돈 받는 자격 100점짜리예요 🎯`,
+  (n,amt)=> `이 정도면 통장이 생일 선물 받은 것 같겠네요 🎂`,
+  (n,amt)=> `들어올 때마다 반가운 게 용돈이죠 😁`,
+  (n,amt)=> `오늘 입금으로 이번 달이 든든해졌어요 📅`,
+  (n,amt)=> `가은은 경제관념 아주 좋으신 분이에요 💡`,
+  (n,amt)=> `통장을 보며 미소짓는 오늘 가은님이에요 🌸`,
+  (n,amt)=> `받자마자 뭐 살지 생각하는 거 맞죠? 😏`,
+  (n,amt)=> `오늘의 입금, 내일의 행복을 위한 씨앗이에요 🌱`,
+  (n,amt)=> `가은은 곧 스티커 부자가 되겠어요 🧸`,
+  (n,amt)=> `이 돈이면 동묘 나들이 한 번은 다녀오겠네요 🏪`,
+  (n,amt)=> `가은님 통장에 말랑이 적금이 쌓이고 있어요 🐻`,
+  (n,amt)=> `말랑이 적금 들어갑니다, 오늘도 차곡차곡이에요 🐻`,
+  (n,amt)=> `가은은 오늘부로 스티커 적립왕이에요 🧸`,
+  (n,amt)=> `이 정도면 동묘 직행도 가능하겠네요 🚇`,
+  (n,amt)=> `용돈 들어왔다고 말랑이가 옆에서 좋아하네요 🎀`,
+  (n,amt)=> `스티커 살 생각에 벌써 신난 표정이에요 ✨`,
+  (n,amt)=> `가은은 위한 말랑이 펀드가 적립되고 있어요 💵`,
+  (n,amt)=> `인도네시아에서도 스티커는 절대 못 참지요 🇮🇩`,
+  (n,amt)=> `오늘 들어온 돈, 스티커북 채우기 딱 좋아요 📒`,
+  (n,amt)=> `말랑이 식구가 늘어날 자금이 모이고 있어요 🐾`,
+  (n,amt)=> `가은은 동묘 단골손님 자격이 가까워졌어요 🏪`,
+  (n,amt)=> `스티커 적립함이 든든해지는 소리가 들려요 🔔`,
+  (n,amt)=> `말랑이 신상 살 생각에 벌써 설레네요 🧸`,
+];
+
+const MALLANG_SAVED_LINES = [
+  (n,amt)=> `가은은 이번 달 절약왕입니다! 박수!! 👏`,
+  (n,amt)=> `미래의 가은이가 고마워하고 있어요 🙏`,
+  (n,amt)=> `이 돈으로 또 무슨 좋은 일이 생길까요?! 🌟`,
+  (n,amt)=> `소비 욕구를 이긴 당신, 진짜 대단해요 💪`,
+  (n,amt)=> `통장이 두둑해지는 소리가 들려요 🔔`,
+  (n,amt)=> `절약 신이 강림하셨습니다 🙌`,
+  (n,amt)=> `이건 못 참지, 너무 잘 참았다 🎉`,
+  (n,amt)=> `가은님의 지갑이 미소짓고 있어요 😊`,
+  (n,amt)=> `오늘도 충동구매를 이겨낸 영웅이에요 🦸`,
+  (n,amt)=> `돼지 저금통이 점점 무거워지네요 🐷`,
+  (n,amt)=> `이 정도면 절약 자격증 줘야 함 📜`,
+  (n,amt)=> `미래의 나에게 보내는 선물이에요 🎁`,
+  (n,amt)=> `오늘 참은 당신, 내일은 더 빛날 거예요 ✨`,
+  (n,amt)=> `가은님, 이 기세로 계속 가봅시다! 🔥`,
+  (n,amt)=> `통장 잔고 +1, 스트레스 -1 😌`,
+  (n,amt)=> `절약은 습관이죠, 이미 습관 마스터! 🏆`,
+  (n,amt)=> `여러분 모두 가은님을 본받으세요 📢`,
+  (n,amt)=> `이 돈으로 또 다른 꿈을 꿀 수 있겠네요 💭`,
+  (n,amt)=> `오늘의 가은, 절약 MVP 등극! 🏅`,
+  (n,amt)=> `가은은 오늘 지갑을 잘 지켜냈어요 🛡️`,
+  (n,amt)=> `참아낸 만큼 내일이 더 든든해질 거예요 🌤️`,
+  (n,amt)=> `가은은 절약 다이어리에 한 줄 추가요 📔`,
+  (n,amt)=> `오늘 안 쓴 돈, 내일의 행복이 될 거예요 🌈`,
+  (n,amt)=> `가은님 덕분에 통장이 한숨 돌렸어요 😮‍💨`,
+  (n,amt)=> `이 정도면 절약 명예의 전당 입성이에요 🏛️`,
+  (n,amt)=> `오늘 아낀 만큼 뭔가 좋은 일이 생길 거예요 🌺`,
+  (n,amt)=> `가은은 오늘 정말 기특한 절약을 해냈어요 👏`,
+  (n,amt)=> `안 쓴 돈이 제일 기분 좋은 돈이에요 😄`,
+  (n,amt)=> `충동구매를 막아낸 오늘의 가은님, 멋있어요 😎`,
+  (n,amt)=> `이번 달 가계부가 웃고 있어요 📊`,
+  (n,amt)=> `오늘 참아낸 거, 나중에 꼭 두 배로 돌아와요 🎁`,
+  (n,amt)=> `가은은 절약 천재의 소질이 보여요 💡`,
+  (n,amt)=> `아낀 돈이 통장에 쌓이는 소리가 들려요 🔔`,
+  (n,amt)=> `오늘 소비 욕구를 이겨낸 건 대단한 일이에요 💪`,
+  (n,amt)=> `이 기세라면 이번 달 마감이 기대돼요 📅`,
+  (n,amt)=> `가은은 참은 만큼 스티커가 쌓이고 있어요 🧸`,
+  (n,amt)=> `오늘 아낀 돈, 말랑이 입양 자금으로 적립할게요 🐻`,
+  (n,amt)=> `이 정도면 동묘 나들이 자금은 마련된 셈이에요 🗺️`,
+  (n,amt)=> `소비 욕구 이긴 가은이, 스티커로 보상받을 거예요 🧸`,
+  (n,amt)=> `돼지 저금통이 말랑이만큼 묵직해지고 있어요 🐷`,
+  (n,amt)=> `가은은 오늘부로 스티커 적립왕이 됐어요 🏅`,
+  (n,amt)=> `이 정도면 스티커북 한 권은 채우겠어요 📒`,
+  (n,amt)=> `오늘 참은 가은이, 내일은 말랑이로 보답받을 거예요 ✨`,
+  (n,amt)=> `가은은 절약 습관이 말랑이 사랑만큼 단단해요 💪`,
+  (n,amt)=> `동묘 갈 자금이 차곡차곡 모이고 있어요 🛍️`,
+  (n,amt)=> `아낀 돈만큼 스티커 적립함이 두둑해져요 🧷`,
+  (n,amt)=> `말랑이도 오늘 절약 소식에 흐뭇해할 거예요 🐻`,
+  (n,amt)=> `가은은 동묘 단골 자격이 가까워지고 있어요 🏪`,
+  (n,amt)=> `오늘 안 쓴 돈, 다음 스티커 구매로 이어질 거예요 🧸`,
+  (n,amt)=> `참은 만큼 말랑이 식구가 늘어날 거예요 🐾`,
+];
+
+function linesFor(name, type){
+  if(name === MALLANG_NAME){
+    if(type === 'good') return MALLANG_GOOD_LINES;
+    if(type === 'soso') return MALLANG_SOSO_LINES;
+    if(type === 'bad') return MALLANG_BAD_LINES;
+    if(type === 'income') return MALLANG_INCOME_LINES;
+    if(type === 'saved') return MALLANG_SAVED_LINES;
+  }
+  if(type === 'good') return GOOD_LINES;
+  if(type === 'soso') return SOSO_LINES;
+  if(type === 'bad') return BAD_LINES;
+  if(type === 'income') return INCOME_LINES;
+  if(type === 'saved') return SAVED_LINES;
+}
+
+const cheerWords = ['최고예요!','완벽해요','짱이다!','부럽다','센스있어','잘샀다!','대박','👍','인정!','갓벽','레전드','부럽네요','완전 잘샀다','센스만점','최고의 선택','감탄했어요','박수쳐요','너무 좋다','이건 못참지','대단해요'];
+const scoldWords = ['이건 좀...','안돼요!','반품!','다시생각해','음... 그건','정신차려','압수합니다','이리 내놔요','이건 아니지','회수합니다','너무했다','반성해요','돈 아까워','이건 진짜 아니야','내놔!','압류!','이거 실화냐','지갑아 미안','다음엔 참자','이건 못참지(나쁜뜻)'];
+const sosoWords = ['굳','음...','뭐 그럭저럭','나쁘진않음','그래그래','인정은함','애매하네','반반이네','음 그렇구나','노코멘트','굳이긴함','평타','무난무난','그저그럼','음 글쎄','일단 굳','애매모호','반반','뭐 살수도','쏘쏘'];
+
+function spawnConfetti(stage, count, colors){
+  for(let i=0;i<count;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = randomBetween(0,100)+'%';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    const delay = randomBetween(0,0.6);
+    const duration = randomBetween(1.6,2.6);
+    c.style.opacity = '1';
+    c.animate([
+      { transform:'translateY(0) rotate(0deg)', opacity:1 },
+      { transform:`translateY(${stage.clientHeight+30}px) rotate(${randomBetween(180,720)}deg)`, opacity:1 }
+    ], { duration: duration*1000, delay: delay*1000, easing:'cubic-bezier(.3,.6,.7,1)', fill:'forwards' });
+    stage.appendChild(c);
+    setTimeout(()=>c.remove(), (duration+delay)*1000+200);
+  }
+}
+
+function runResult(choice){
+  cleanupStage();
+  saveRecord(choice);
+  const stage = document.getElementById('result-stage');
+  const crowd = document.getElementById('crowd');
+  const resultText = document.getElementById('result-text');
+  const resultMsg = document.getElementById('result-msg');
+  const footerName = document.getElementById('footer-name');
+  const resultItemEl = document.getElementById('result-item');
+  const emoji = guessEmoji(itemName);
+  resultItemEl.textContent = emoji;
+  footerName.textContent = `${eunNeun(userName)} 참가자`;
+
+  showScreen('screen-result');
+
+  if(choice === 'good'){
+    resultText.textContent = pick(linesFor(userName,'good'))(userName, itemName);
+    resultMsg.textContent = pick(linesFor(userName,'good'))(userName, itemName);
+    // crowd cheering, walking in from both sides
+    const people = ['🧑','👩','👨','🧓','👧','👦','🧔','👩‍🦰','🧑‍🦱','👩‍🦳'];
+    for(let i=0;i<10;i++){
+      const p = document.createElement('div');
+      p.className = 'person';
+      p.textContent = people[i % people.length];
+      crowd.appendChild(p);
+      const fromLeft = i % 2 === 0;
+      p.animate([
+        { transform:`translateX(${fromLeft ? -200 : 200}px)`, opacity:0 },
+        { transform:'translateX(0)', opacity:1 }
+      ], { duration:600, delay: i*70, easing:'cubic-bezier(.2,1.4,.4,1)', fill:'forwards' });
+      // bounce after arrival
+      setTimeout(()=>{
+        p.animate([
+          { transform:'translateY(0)' },
+          { transform:'translateY(-14px)' },
+          { transform:'translateY(0)' }
+        ], { duration:500, iterations: Infinity, easing:'ease-in-out' });
+      }, 600 + i*70);
+      // speech bubble for a few
+      if(i < 4){
+        setTimeout(()=>{
+          const bubble = document.createElement('div');
+          bubble.className = 'speech';
+          bubble.textContent = cheerWords[Math.floor(Math.random()*cheerWords.length)];
+          bubble.style.left = (10 + i*22) + '%';
+          bubble.style.bottom = '120px';
+          stage.appendChild(bubble);
+          bubble.animate([
+            { opacity:0, transform:'translateY(8px)' },
+            { opacity:1, transform:'translateY(0)' }
+          ], { duration:300, fill:'forwards' });
+          setTimeout(()=>{ bubble.style.opacity = 0; setTimeout(()=>bubble.remove(),300); }, 1800);
+        }, 900 + i*150);
+      }
+    }
+    resultItemEl.animate([
+      { transform:'translate(-50%,-50%) scale(1)' },
+      { transform:'translate(-50%,-50%) scale(1.4) rotate(15deg)' },
+      { transform:'translate(-50%,-50%) scale(1.2) rotate(-10deg)' },
+      { transform:'translate(-50%,-50%) scale(1.3) rotate(0deg)' }
+    ], { duration:1200, easing:'ease-in-out', iterations: Infinity, direction:'alternate' });
+    spawnConfetti(stage, 40, ['#FF8A3D','#FFC15E','#FF5E7E','#5ED9C9','#7C8CFF']);
+    setTimeout(()=>spawnConfetti(stage, 30, ['#FF8A3D','#FFC15E','#FF5E7E','#5ED9C9','#7C8CFF']), 700);
+
+  } else if(choice === 'soso'){
+    resultText.textContent = pick(linesFor(userName,'soso'))(userName, itemName);
+    resultMsg.textContent = pick(linesFor(userName,'soso'))(userName, itemName);
+    document.getElementById('stamp').classList.add('show');
+    // a couple of people peek in, shrug
+    const peekers = ['🤷','🤷‍♀️','🤷‍♂️'];
+    peekers.forEach((p,i)=>{
+      const el = document.createElement('div');
+      el.className = 'person';
+      el.textContent = p;
+      crowd.appendChild(el);
+      el.animate([
+        { transform:'translateY(40px)', opacity:0 },
+        { transform:'translateY(0)', opacity:1 }
+      ], { duration:500, delay: 800 + i*200, easing:'ease-out', fill:'forwards' });
+    });
+    resultItemEl.animate([
+      { transform:'translate(-50%,-50%) rotate(-6deg)' },
+      { transform:'translate(-50%,-50%) rotate(6deg)' }
+    ], { duration:900, easing:'ease-in-out', iterations: Infinity, direction:'alternate' });
+    spawnConfetti(stage, 10, ['#34B97A','#6FE0A8']);
+
+  } else {
+    resultText.textContent = pick(linesFor(userName,'bad'))(userName, itemName);
+    resultMsg.textContent = pick(linesFor(userName,'bad'))(userName, itemName);
+    const people = ['🧑','👩','👨','🧓','🧔'];
+    for(let i=0;i<6;i++){
+      const p = document.createElement('div');
+      p.className = 'person';
+      p.textContent = people[i % people.length];
+      crowd.appendChild(p);
+      const fromLeft = i % 2 === 0;
+      p.animate([
+        { transform:`translateX(${fromLeft ? -240 : 240}px)`, opacity:0 },
+        { transform:'translateX(0)', opacity:1 }
+      ], { duration:550, delay: i*90, easing:'cubic-bezier(.3,1.2,.4,1)', fill:'forwards' });
+      if(i < 3){
+        setTimeout(()=>{
+          const bubble = document.createElement('div');
+          bubble.className = 'speech';
+          bubble.textContent = scoldWords[Math.floor(Math.random()*scoldWords.length)];
+          bubble.style.left = (15 + i*25) + '%';
+          bubble.style.bottom = '120px';
+          stage.appendChild(bubble);
+          bubble.animate([
+            { opacity:0, transform:'translateY(8px)' },
+            { opacity:1, transform:'translateY(0)' }
+          ], { duration:300, fill:'forwards' });
+          setTimeout(()=>{ bubble.style.opacity = 0; setTimeout(()=>bubble.remove(),300); }, 1500);
+        }, 700 + i*150);
+      }
+    }
+    // item gets dragged off and disappears around 1.4s
+    setTimeout(()=>{
+      resultItemEl.animate([
+        { transform:'translate(-50%,-50%) scale(1) rotate(0deg)', opacity:1 },
+        { transform:'translate(-50%,-150%) scale(0.4) rotate(40deg)', opacity:0 }
+      ], { duration:600, easing:'ease-in', fill:'forwards' });
+    }, 1300);
+    // money flies back
+    setTimeout(()=>{
+      for(let i=0;i<5;i++){
+        const m = document.createElement('div');
+        m.className = 'money';
+        m.textContent = '💵';
+        m.style.left = (40 + randomBetween(-10,10)) + '%';
+        m.style.top = '46%';
+        stage.appendChild(m);
+        m.animate([
+          { transform:'translate(0,0) scale(0.6)', opacity:0 },
+          { transform:`translate(${randomBetween(-30,30)}px,-60px) scale(1.2)`, opacity:1 },
+          { transform:`translate(${randomBetween(-60,60)}px,${stage.clientHeight*0.3}px) scale(1)`, opacity:1 },
+          { transform:`translate(0,${stage.clientHeight*0.55}px) scale(0.8)`, opacity:0 }
+        ], { duration:1400, delay:i*100, easing:'ease-in-out', fill:'forwards' });
+        setTimeout(()=>m.remove(), 1600 + i*100);
+      }
+    }, 1450);
+  }
+}
+
+// ===================== 장부 (Ledger) =====================
+const RECORDS_KEY = 'spending_records';
+
+async function loadRecords(){
+  try{
+    const res = await window.storage.get(scopedKey(RECORDS_KEY), false);
+    if(res && res.value){
+      return JSON.parse(res.value);
+    }
+    return [];
+  }catch(err){
+    return [];
+  }
+}
+
+async function saveRecords(records){
+  try{
+    const res = await window.storage.set(scopedKey(RECORDS_KEY), JSON.stringify(records), false);
+    if(!res) throw new Error('storage.set returned null');
+    return true;
+  }catch(err){
+    console.error('저장 실패', err);
+    alert('삭제/저장에 실패했어요. 다시 시도해주세요 🙏');
+    return false;
+  }
+}
+
+async function saveRecord(choice){
+  if(!itemName) return;
+  const dateVal = document.getElementById('input-date').value;
+  const timeVal = document.getElementById('input-time').value;
+  const now = (dateVal && timeVal) ? new Date(`${dateVal}T${timeVal}`) : new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const record = {
+    id: 'r' + Date.now() + Math.random().toString(36).slice(2,7),
+    name: userName,
+    item: itemName,
+    emoji: guessEmoji(itemName),
+    amount: currentAmount,
+    category: choice, // good | soso | bad
+    dateISO: now.toISOString(),
+    dateLabel: `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`,
+    timeLabel: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    monthKey: `${now.getFullYear()}-${pad(now.getMonth()+1)}`,
+    year: now.getFullYear(),
+    month: now.getMonth()+1,
+    day: now.getDate(),
+  };
+  const records = await loadRecords();
+  records.push(record);
+  await saveRecords(records);
+}
+
+// ===================== 입금 / 아낀 돈 =====================
+const INCOME_KEY = 'income_records';
+const SAVED_KEY = 'saved_records';
+let allIncome = [];
+let allSaved = [];
+
+async function loadIncome(){
+  try{
+    const res = await window.storage.get(scopedKey(INCOME_KEY), false);
+    return res && res.value ? JSON.parse(res.value) : [];
+  }catch(err){ return []; }
+}
+async function saveIncomeList(list){
+  try{
+    const res = await window.storage.set(scopedKey(INCOME_KEY), JSON.stringify(list), false);
+    return !!res;
+  }catch(err){ console.error('입금 저장 실패', err); return false; }
+}
+async function loadSaved(){
+  try{
+    const res = await window.storage.get(scopedKey(SAVED_KEY), false);
+    return res && res.value ? JSON.parse(res.value) : [];
+  }catch(err){ return []; }
+}
+async function saveSavedList(list){
+  try{
+    const res = await window.storage.set(scopedKey(SAVED_KEY), JSON.stringify(list), false);
+    return !!res;
+  }catch(err){ console.error('저금 저장 실패', err); return false; }
+}
+
+function dateParts(d){
+  const pad = n => String(n).padStart(2,'0');
+  return {
+    dateISO: d.toISOString(),
+    dateLabel: `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`,
+    timeLabel: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    monthKey: `${d.getFullYear()}-${pad(d.getMonth()+1)}`,
+    year: d.getFullYear(), month: d.getMonth()+1, day: d.getDate(),
+  };
+}
+
+const categoryLabel = { good: '합리적', soso: '애매함', bad: '비합리적' };
+const categoryBadgeClass = { good: 'badge-good', soso: 'badge-soso', bad: 'badge-bad' };
+const NOTES_KEY = 'monthly_notes';
+
+let viewYear, viewMonth; // 현재 보고 있는 연/월
+let viewMode = 'month'; // 'month' | 'year'
+let allRecords = [];
+let allNotes = {};
+let deleteMode = false;
+let selectedIds = new Set();
+
+async function loadNotes(){
+  try{
+    const res = await window.storage.get(scopedKey(NOTES_KEY), false);
+    return res && res.value ? JSON.parse(res.value) : {};
+  }catch(err){
+    return {};
+  }
+}
+async function saveNotes(notes){
+  try{ await window.storage.set(scopedKey(NOTES_KEY), JSON.stringify(notes), false); }
+  catch(err){ console.error('메모 저장 실패', err); }
+}
+
+async function openLedger(){
+  showScreen('screen-ledger');
+  const list = document.getElementById('ledger-list');
+  list.innerHTML = '<div class="ledger-empty">불러오는 중... ⏳</div>';
+
+  allRecords = await loadRecords();
+  allNotes = await loadNotes();
+  allIncome = await loadIncome();
+
+  if(userName && !profileImage){
+    try{
+      const res = await window.storage.get(PROFILE_PREFIX + userName, false);
+      if(res && res.value) profileImage = res.value;
+    }catch(err){ /* 프로필 없음 */ }
+  }
+
+  const now = new Date();
+  if(viewYear === undefined){
+    if(allRecords.length){
+      const latest = [...allRecords].sort((a,b)=> new Date(b.dateISO)-new Date(a.dateISO))[0];
+      viewYear = latest.year; viewMonth = latest.month;
+    } else {
+      viewYear = now.getFullYear(); viewMonth = now.getMonth()+1;
+    }
+  }
+  viewMode = 'month';
+  deleteMode = false;
+  selectedIds.clear();
+  updateDeleteUI();
+  applyProfileIcon('ledger-logo', `📒 ${userName ? userName + '의' : '나의'} 소비 장부`, `${userName ? userName + '의' : '나의'} 소비 장부`);
+  const doodleWrap = document.getElementById('profile-doodle-wrap');
+  if(profileImage){
+    document.getElementById('profile-doodle-img').src = profileImage;
+    document.getElementById('profile-doodle-caption').textContent = `${userName ? userName + '의' : '나의'} 캐릭터`;
+    doodleWrap.style.display = 'block';
+  } else {
+    doodleWrap.style.display = 'none';
+  }
+  document.getElementById('ledger-header').textContent = '소비 기록';
+  render();
+}
+
+function renderStatsBox(){
+  const box = document.getElementById('stats-box');
+  const totalSpend = allRecords.reduce((s,r)=> s + (r.amount||0), 0);
+  const goodTotal = allRecords.filter(r=>r.category==='good').reduce((s,r)=> s + (r.amount||0), 0);
+  const sosoTotal = allRecords.filter(r=>r.category==='soso').reduce((s,r)=> s + (r.amount||0), 0);
+  const badTotal = allRecords.filter(r=>r.category==='bad').reduce((s,r)=> s + (r.amount||0), 0);
+  const incomeTotal = allIncome.reduce((s,r)=> s + (r.amount||0), 0);
+  const wallet = incomeTotal - totalSpend;
+  const won = n => moneyStr(n);
+  box.innerHTML = `
+    <div class="stat-item"><span>💸 전체 소비</span><b>${won(totalSpend)}</b></div>
+    <div class="stat-item"><span>💰 입금 합계</span><b>${won(incomeTotal)}</b></div>
+    <div class="stat-item"><span class="badge-good" style="border-radius:8px;padding:1px 6px;color:white;">합리적</span><b>${won(goodTotal)}</b></div>
+    <div class="stat-item"><span class="badge-soso" style="border-radius:8px;padding:1px 6px;color:white;">애매함</span><b>${won(sosoTotal)}</b></div>
+    <div class="stat-item"><span class="badge-bad" style="border-radius:8px;padding:1px 6px;color:white;">비합리적</span><b>${won(badTotal)}</b></div>
+    <div class="stat-wallet"><span>👛 현재 주머니 상태</span><span style="color:${wallet>=0?'#1F9D5E':'#D14848'}">${won(wallet)}</span></div>
+  `;
+}
+
+function monthKeyOf(y,m){ return `${y}-${String(m).padStart(2,'0')}`; }
+
+function render(){
+  renderStatsBox();
+  document.getElementById('year-grid').style.display = viewMode === 'year' ? 'grid' : 'none';
+  document.getElementById('ledger-list').style.display = viewMode === 'year' ? 'none' : 'flex';
+  document.getElementById('month-summary').style.display = viewMode === 'year' ? 'none' : 'flex';
+  document.getElementById('note-area').style.display = viewMode === 'year' ? 'none' : 'block';
+  document.getElementById('btn-view-toggle').textContent = viewMode === 'year' ? '🗓️ 월별로 보기' : '📅 연도별로 보기';
+
+  if(viewMode === 'month'){
+    document.getElementById('nav-title').textContent = `${viewYear}년 ${viewMonth}월`;
+    renderMonthView();
+  } else {
+    document.getElementById('nav-title').textContent = `${viewYear}년`;
+    renderYearView();
+  }
+}
+
+function renderMonthView(){
+  const key = monthKeyOf(viewYear, viewMonth);
+  const summary = document.getElementById('month-summary');
+  const list = document.getElementById('ledger-list');
+
+  const spendRecords = allRecords.filter(r => r.monthKey === key).map(r => ({ ...r, _kind: 'spend' }));
+  const incomeRecords = allIncome.filter(r => r.monthKey === key).map(r => ({ ...r, _kind: 'income' }));
+
+  const monthEntries = [...spendRecords, ...incomeRecords]
+    .sort((a,b) => new Date(b.dateISO) - new Date(a.dateISO));
+
+  const spendTotal = spendRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+  summary.innerHTML = `<span>이번 달 총 <b>${spendRecords.length}건</b></span><span>소비 합계 <b>${moneyStr(spendTotal)}</b></span>`;
+
+  renderNoteArea(key);
+
+  list.innerHTML = '';
+  if(monthEntries.length === 0){
+    list.innerHTML = '<div class="ledger-empty">이 달에는 기록이 없어요</div>';
+    return;
+  }
+  monthEntries.forEach((r, i) => {
+    const entry = document.createElement('div');
+    const isIncome = r._kind === 'income';
+    entry.className = 'ledger-entry' + (isIncome ? ' ledger-entry-income' : '');
+    const checked = selectedIds.has(r.id);
+    const amountText = isIncome ? `+${moneyStr(r.amount||0)}` : moneyStr(r.amount||0);
+    const badgeHtml = isIncome
+      ? `<span class="ledger-badge badge-income">입금</span>`
+      : `<span class="ledger-badge ${categoryBadgeClass[r.category]}">${categoryLabel[r.category]}</span>`;
+    entry.innerHTML = `
+      ${deleteMode ? `<div class="entry-check ${checked ? 'checked' : ''}" data-id="${r.id}">${checked ? '✓' : ''}</div>` : ''}
+      <div class="ledger-emoji">${isIncome ? '💰' : (r.emoji || '🎁')}</div>
+      <div class="ledger-info">
+        <div class="ledger-item-name">${isIncome ? (r.label || '입금') : r.item}</div>
+        <div class="ledger-meta">${r.dateLabel} · ${r.timeLabel}</div>
+      </div>
+      <div class="ledger-right">
+        <div class="ledger-amount${isIncome ? ' ledger-amount-income' : ''}">${amountText}</div>
+        ${badgeHtml}
+      </div>
+    `;
+    if(deleteMode){
+      entry.style.cursor = 'pointer';
+      entry.addEventListener('click', () => toggleSelect(r.id));
+    }
+    list.appendChild(entry);
+    setTimeout(() => entry.classList.add('in'), i * 60);
+  });
+}
+
+function toggleSelect(id){
+  if(selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  renderMonthView();
+  updateDeleteUI();
+}
+
+function exitDeleteMode(){
+  deleteMode = false;
+  selectedIds.clear();
+  updateDeleteUI();
+  if(viewMode === 'month') renderMonthView();
+}
+
+function updateDeleteUI(){
+  const bar = document.getElementById('delete-bar');
+  const countEl = document.getElementById('delete-count');
+  const btnMode = document.getElementById('btn-delete-mode');
+  btnMode.classList.toggle('active', deleteMode);
+  btnMode.textContent = deleteMode ? '✕ 선택 취소' : '🗑 선택 삭제';
+  bar.classList.toggle('show', deleteMode);
+  countEl.textContent = `${selectedIds.size}개 선택됨`;
+}
+
+document.getElementById('btn-delete-mode').addEventListener('click', () => {
+  if(deleteMode){
+    exitDeleteMode();
+  } else {
+    deleteMode = true;
+    selectedIds.clear();
+    updateDeleteUI();
+    if(viewMode === 'month') renderMonthView();
+  }
+});
+
+document.getElementById('btn-delete-cancel').addEventListener('click', () => {
+  exitDeleteMode();
+});
+
+document.getElementById('btn-delete-confirm').addEventListener('click', async () => {
+  if(selectedIds.size === 0) return;
+  const remainingRecords = allRecords.filter(r => !selectedIds.has(r.id));
+  const remainingIncome = allIncome.filter(r => !selectedIds.has(r.id));
+  const recordsChanged = remainingRecords.length !== allRecords.length;
+  const incomeChanged = remainingIncome.length !== allIncome.length;
+  let ok = true;
+  if(recordsChanged) ok = ok && await saveRecords(remainingRecords);
+  if(incomeChanged) ok = ok && await saveIncomeList(remainingIncome);
+  if(!ok){ alert('삭제에 실패했어요 🙏'); return; }
+  if(recordsChanged) allRecords = remainingRecords;
+  if(incomeChanged) allIncome = remainingIncome;
+  selectedIds.clear();
+  deleteMode = false;
+  updateDeleteUI();
+  render();
+});
+
+function renderNoteArea(key){
+  const area = document.getElementById('note-area');
+  const note = allNotes[key] || { resolution:'', review:'' };
+  area.innerHTML = `
+    <div class="note-box">
+      <div class="note-label">✍️ 이 달의 다짐 (1일에 적어보세요) <span class="note-saved" id="saved-resolution">저장됨 ✓</span></div>
+      <textarea id="note-resolution" rows="2" placeholder="이번 달엔 충동구매 줄이기!">${note.resolution || ''}</textarea>
+    </div>
+    <div class="note-box">
+      <div class="note-label">🌙 이 달의 한줄평 (말일에 적어보세요) <span class="note-saved" id="saved-review">저장됨 ✓</span></div>
+      <textarea id="note-review" rows="2" placeholder="이번 달 소비 어땠나요?">${note.review || ''}</textarea>
+    </div>
+  `;
+  const resEl = document.getElementById('note-resolution');
+  const revEl = document.getElementById('note-review');
+  let resTimer, revTimer;
+  resEl.addEventListener('input', () => {
+    clearTimeout(resTimer);
+    resTimer = setTimeout(async () => {
+      if(!allNotes[key]) allNotes[key] = { resolution:'', review:'' };
+      allNotes[key].resolution = resEl.value;
+      await saveNotes(allNotes);
+      flashSaved('saved-resolution');
+    }, 500);
+  });
+  revEl.addEventListener('input', () => {
+    clearTimeout(revTimer);
+    revTimer = setTimeout(async () => {
+      if(!allNotes[key]) allNotes[key] = { resolution:'', review:'' };
+      allNotes[key].review = revEl.value;
+      await saveNotes(allNotes);
+      flashSaved('saved-review');
+    }, 500);
+  });
+}
+function flashSaved(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), 1200);
+}
+
+function renderYearView(){
+  const grid = document.getElementById('year-grid');
+  grid.innerHTML = '';
+  for(let m = 1; m <= 12; m++){
+    const key = monthKeyOf(viewYear, m);
+    const monthRecords = allRecords.filter(r => r.monthKey === key);
+    const total = monthRecords.reduce((s,r)=> s + (r.amount||0), 0);
+    const card = document.createElement('div');
+    card.className = 'year-month-card' + (monthRecords.length === 0 ? ' empty' : '');
+    card.innerHTML = `
+      <div class="mlabel">${m}월</div>
+      <div class="mcount">${monthRecords.length}건</div>
+      <div class="mamount">${total > 0 ? moneyStr(total) : '-'}</div>
+    `;
+    card.addEventListener('click', () => {
+      viewMonth = m;
+      viewMode = 'month';
+      render();
+    });
+    grid.appendChild(card);
+    setTimeout(()=> card.classList.add('in'), m*30);
+  }
+}
+
+document.getElementById('nav-prev').addEventListener('click', () => {
+  if(viewMode === 'month'){
+    viewMonth -= 1;
+    if(viewMonth < 1){ viewMonth = 12; viewYear -= 1; }
+  } else {
+    viewYear -= 1;
+  }
+  render();
+});
+document.getElementById('nav-next').addEventListener('click', () => {
+  if(viewMode === 'month'){
+    viewMonth += 1;
+    if(viewMonth > 12){ viewMonth = 1; viewYear += 1; }
+  } else {
+    viewYear += 1;
+  }
+  render();
+});
+document.getElementById('btn-view-toggle').addEventListener('click', () => {
+  viewMode = viewMode === 'month' ? 'year' : 'month';
+  render();
+});
+
+document.getElementById('btn-go-ledger-from-name').addEventListener('click', () => {
+  const typed = inputName.value.trim();
+  if(!typed){
+    alert('닉네임마다 장부가 따로 저장돼요. 먼저 이름을 입력해주세요! 😊');
+    inputName.focus();
+    return;
+  }
+  if(typed !== userName){
+    userName = typed;
+    viewYear = undefined; viewMonth = undefined; // 닉네임이 바뀌면 최신 월 다시 계산
+    profileImage = '';
+  }
+  loadCurrencyPref();
+  openLedger();
+});
+document.getElementById('btn-go-ledger-from-result').addEventListener('click', openLedger);
+document.getElementById('btn-go-ledger-from-item').addEventListener('click', openLedger);
+document.getElementById('btn-switch-user').addEventListener('click', () => {
+  inputName.value = '';
+  btnNameNext.disabled = true;
+  currentCurrency = 'KRW';
+  updateCurrencyUI();
+  showScreen('screen-name');
+  setTimeout(()=>inputName.focus(), 200);
+});
+document.getElementById('btn-ledger-back').addEventListener('click', () => {
+  if(userName){
+    showScreen('screen-item');
+  } else {
+    showScreen('screen-name');
+  }
+});
+
+// ===================== 입금 화면 =====================
+const inputIncomeAmount = document.getElementById('input-income-amount');
+const btnIncomeSave = document.getElementById('btn-income-save');
+let currentIncomeAmount = 0;
+let currentIncomeLabel = '용돈';
+
+document.querySelectorAll('#income-label-row .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#income-label-row .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentIncomeLabel = chip.dataset.label;
+  });
+});
+document.querySelector('#income-label-row .chip').classList.add('active');
+
+inputIncomeAmount.addEventListener('input', () => {
+  formatNumberInput(inputIncomeAmount);
+  currentIncomeAmount = currentAmount; // reuse formatter's parsed value
+  btnIncomeSave.disabled = currentIncomeAmount <= 0;
+});
+
+document.getElementById('btn-go-income').addEventListener('click', () => {
+  inputIncomeAmount.value = '';
+  currentIncomeAmount = 0;
+  btnIncomeSave.disabled = true;
+  showScreen('screen-income');
+});
+document.getElementById('btn-income-back').addEventListener('click', () => showScreen('screen-item'));
+
+btnIncomeSave.addEventListener('click', async () => {
+  if(btnIncomeSave.disabled) return;
+  btnIncomeSave.disabled = true;
+  const now = new Date();
+  const record = {
+    id: 'in' + Date.now() + Math.random().toString(36).slice(2,7),
+    name: userName,
+    label: currentIncomeLabel,
+    amount: currentIncomeAmount,
+    ...dateParts(now),
+  };
+  allIncome = await loadIncome();
+  allIncome.push(record);
+  const ok = await saveIncomeList(allIncome);
+  if(!ok){
+    alert('입금 기록 저장에 실패했어요 🙏');
+    btnIncomeSave.disabled = currentIncomeAmount <= 0;
+    return;
+  }
+  const savedAmount = currentIncomeAmount;
+  inputIncomeAmount.value = '';
+  currentIncomeAmount = 0;
+  btnIncomeSave.disabled = true;
+  showIncomeResult(savedAmount);
+});
+
+document.getElementById('btn-income-result-ok').addEventListener('click', () => showScreen('screen-item'));
+
+function showIncomeResult(amount){
+  showScreen('screen-income-result');
+  const crowd = document.getElementById('income-crowd');
+  const msgEl = document.getElementById('income-result-msg');
+  crowd.innerHTML = '';
+  document.getElementById('income-result-text').textContent = `💰 ${moneyStr(amount)} 입금 완료! 💰`;
+  msgEl.textContent = pick(linesFor(userName,'income'))(userName, amount);
+
+  const people = ['🧑','👩','👨','🧓','👧','👦','🧔','👩‍🦰','🧑‍🦱','👩‍🦳'];
+  for(let i=0;i<8;i++){
+    const p = document.createElement('div');
+    p.className = 'person';
+    p.textContent = people[i % people.length];
+    crowd.appendChild(p);
+    const fromLeft = i % 2 === 0;
+    p.animate([
+      { transform:`translateX(${fromLeft ? -200 : 200}px)`, opacity:0 },
+      { transform:'translateX(0)', opacity:1 }
+    ], { duration:600, delay: i*70, easing:'cubic-bezier(.2,1.4,.4,1)', fill:'forwards' });
+    setTimeout(()=>{
+      p.animate([
+        { transform:'translateY(0)' },
+        { transform:'translateY(-14px)' },
+        { transform:'translateY(0)' }
+      ], { duration:500, iterations: Infinity, easing:'ease-in-out' });
+    }, 600 + i*70);
+  }
+  spawnConfetti(document.getElementById('income-result-stage'), 36, ['#34B97A','#6FE0A8','#FFC15E','#7C8CFF']);
+  setTimeout(()=>spawnConfetti(document.getElementById('income-result-stage'), 24, ['#34B97A','#6FE0A8','#FFC15E','#7C8CFF']), 700);
+}
+
+// ===================== 돼지 저금통 화면 =====================
+// ---------- 돼지 저금통 동전/지폐 단위 (통화별) ----------
+const KRW_DENOMS = [
+  { amt: 50000, visual: '5만', label: '5만원' },
+  { amt: 10000, visual: '1만', label: '만원' },
+  { amt: 1000,  visual: '1천', label: '천원' },
+  { amt: 500,   visual: '500', label: '500원' },
+  { amt: 100,   visual: '100', label: '100원' },
+];
+const IDR_DENOMS = [
+  { amt: 100000, visual: '100K',   label: '100K' },
+  { amt: 50000,  visual: '50K',    label: '50K' },
+  { amt: 10000,  visual: '10K',    label: '10K' },
+  { amt: 5000,   visual: '5.000',  label: '5.000' },
+  { amt: 1000,   visual: '1.000',  label: '1.000' },
+];
+function applyCoinDenoms(){
+  const denoms = (isMallang() && currentCurrency === 'IDR') ? IDR_DENOMS : KRW_DENOMS;
+  denoms.forEach((d, idx) => {
+    const btn = document.getElementById(`coin-btn-${idx+1}`);
+    if(!btn) return;
+    btn.dataset.coin = d.amt;
+    const spans = btn.querySelectorAll('span');
+    if(spans[0]) spans[0].textContent = d.visual;
+    if(spans[1]) spans[1].textContent = d.label;
+  });
+}
+
+const piggyEmoji = document.getElementById('piggy-emoji');
+const piggyTotalEl = document.getElementById('piggy-total');
+const piggyStage = document.getElementById('piggy-stage');
+const btnPiggySave = document.getElementById('btn-piggy-save');
+let piggyAmount = 0;
+
+function updatePiggyTotal(){
+  piggyTotalEl.textContent = `${moneyStr(piggyAmount)} 모았어요`;
+  btnPiggySave.disabled = piggyAmount <= 0;
+}
+
+document.querySelectorAll('.coin-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const value = parseInt(btn.dataset.coin, 10);
+    piggyAmount += value;
+    updatePiggyTotal();
+    piggyEmoji.classList.remove('bump');
+    void piggyEmoji.offsetWidth; // restart animation
+    piggyEmoji.classList.add('bump');
+
+    // flying coin animation
+    const visual = btn.querySelector('.coin-visual');
+    const coin = document.createElement('div');
+    coin.className = 'flying-coin';
+    coin.innerHTML = visual ? visual.outerHTML : '';
+    const btnRect = btn.getBoundingClientRect();
+    const stageRect = piggyStage.getBoundingClientRect();
+    coin.style.left = (btnRect.left - stageRect.left + btnRect.width/2 - 14) + 'px';
+    coin.style.top = (btnRect.top - stageRect.top) + 'px';
+    piggyStage.appendChild(coin);
+    coin.animate([
+      { transform:'translate(0,0) scale(1)', opacity:1 },
+      { transform:`translate(${(stageRect.width/2) - (btnRect.left - stageRect.left + btnRect.width/2)}px, ${-(btnRect.top - stageRect.top) + stageRect.height/2 - 20}px) scale(0.3)`, opacity:0.2 }
+    ], { duration:500, easing:'cubic-bezier(.3,.6,.7,1)', fill:'forwards' });
+    setTimeout(()=>coin.remove(), 520);
+  });
+});
+
+document.getElementById('btn-go-piggy').addEventListener('click', () => {
+  piggyAmount = 0;
+  updatePiggyTotal();
+  applyCoinDenoms();
+  showScreen('screen-piggy');
+});
+document.getElementById('btn-piggy-back').addEventListener('click', () => showScreen('screen-item'));
+document.getElementById('btn-piggy-reset').addEventListener('click', () => {
+  piggyAmount = 0;
+  updatePiggyTotal();
+});
+
+btnPiggySave.addEventListener('click', async () => {
+  if(btnPiggySave.disabled || piggyAmount <= 0) return;
+  btnPiggySave.disabled = true;
+  const now = new Date();
+  const record = {
+    id: 'sv' + Date.now() + Math.random().toString(36).slice(2,7),
+    name: userName,
+    amount: piggyAmount,
+    ...dateParts(now),
+  };
+  allSaved = await loadSaved();
+  allSaved.push(record);
+  const ok = await saveSavedList(allSaved);
+  if(!ok){
+    alert('저금 기록 저장에 실패했어요 🙏');
+    btnPiggySave.disabled = piggyAmount <= 0;
+    return;
+  }
+  await showPiggyResult();
+});
+
+document.getElementById('btn-go-piggy-result').addEventListener('click', showPiggyResult);
+document.getElementById('btn-piggy-result-ok').addEventListener('click', () => showScreen('screen-item'));
+
+async function showPiggyResult(){
+  allSaved = await loadSaved();
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const monthKey = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  const monthTotal = allSaved.filter(r => r.monthKey === monthKey).reduce((s,r)=> s + (r.amount||0), 0);
+
+  showScreen('screen-piggy-result');
+  const crowd = document.getElementById('piggy-crowd');
+  const amountEl = document.getElementById('piggy-result-amount');
+  const msgEl = document.getElementById('piggy-result-msg');
+  crowd.innerHTML = '';
+  amountEl.textContent = moneyStr(0);
+  amountEl.style.animation = '';
+
+  document.getElementById('piggy-result-text').textContent = `🐷 이번 달 아낀 돈은!! 🐷`;
+  msgEl.textContent = pick(linesFor(userName,'saved'))(userName, monthTotal);
+
+  // count-up animation
+  const duration = 900;
+  const start = performance.now();
+  function tick(t){
+    const progress = Math.min(1, (t-start)/duration);
+    const eased = 1 - Math.pow(1-progress, 3);
+    amountEl.textContent = moneyStr(Math.floor(monthTotal * eased));
+    if(progress < 1) requestAnimationFrame(tick);
+    else amountEl.textContent = moneyStr(monthTotal);
+  }
+  requestAnimationFrame(tick);
+
+  amountEl.animate([
+    { transform:'translate(-50%,-50%) scale(0.6)', opacity:0 },
+    { transform:'translate(-50%,-50%) scale(1.2)', opacity:1 },
+    { transform:'translate(-50%,-50%) scale(1)', opacity:1 }
+  ], { duration:500, easing:'cubic-bezier(.2,1.4,.4,1)' });
+
+  const people = ['🧑','👩','👨','🧓','👧','👦','🧔','👩‍🦰','🧑‍🦱','👩‍🦳'];
+  for(let i=0;i<10;i++){
+    const p = document.createElement('div');
+    p.className = 'person';
+    p.textContent = people[i % people.length];
+    crowd.appendChild(p);
+    const fromLeft = i % 2 === 0;
+    p.animate([
+      { transform:`translateX(${fromLeft ? -200 : 200}px)`, opacity:0 },
+      { transform:'translateX(0)', opacity:1 }
+    ], { duration:600, delay: i*70, easing:'cubic-bezier(.2,1.4,.4,1)', fill:'forwards' });
+    setTimeout(()=>{
+      p.animate([
+        { transform:'translateY(0)' },
+        { transform:'translateY(-14px)' },
+        { transform:'translateY(0)' }
+      ], { duration:500, iterations: Infinity, easing:'ease-in-out' });
+    }, 600 + i*70);
+  }
+  spawnConfetti(document.getElementById('piggy-result-stage'), 40, ['#FF8A3D','#FFC15E','#FF5E7E','#5ED9C9','#7C8CFF']);
+  setTimeout(()=>spawnConfetti(document.getElementById('piggy-result-stage'), 30, ['#FF8A3D','#FFC15E','#FF5E7E','#5ED9C9','#7C8CFF']), 700);
+}
+</script>
+
+</body>
+</html>
